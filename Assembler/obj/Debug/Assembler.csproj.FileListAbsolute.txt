@@ -3,3 +3,8 @@ c:\users\maxime\documents\visual studio 2013\Projects\ConsoleApplication1\Assemb
 c:\users\maxime\documents\visual studio 2013\Projects\ConsoleApplication1\Assembler\obj\Debug\Assembler.csprojResolveAssemblyReference.cache
 c:\users\maxime\documents\visual studio 2013\Projects\ConsoleApplication1\Assembler\obj\Debug\Assembler.exe
 c:\users\maxime\documents\visual studio 2013\Projects\ConsoleApplication1\Assembler\obj\Debug\Assembler.pdb
+C:\Users\Maxime\comparch\Assembler\obj\Debug\Assembler.exe
+C:\Users\Maxime\comparch\Assembler\obj\Debug\Assembler.pdb
+C:\Users\Maxime\comparch\Assembler\bin\Debug\Assembler.exe
+C:\Users\Maxime\comparch\Assembler\bin\Debug\Assembler.pdb
+C:\Users\Maxime\comparch\Assembler\obj\Debug\Assembler.csprojResolveAssemblyReference.cache

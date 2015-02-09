@@ -7,6 +7,7 @@ namespace Assembler
 {
     public enum Operation
     {
+        None,
         Add,
         Sub,
         Addi,

@@ -10,118 +10,86 @@ namespace Assembler
     {
         public static string FullFilePath;
 
-        public static bool StringToRegister(string s, Register r)
+        public static Register StringToRegister(string s)
         {
             string lowerCase = s.ToLower();
 
             switch (lowerCase)
             {
                 case "$zero":
-                    r = Register.Zero;
-                    return true;
+                    return Register.Zero;
                 case "$at":
-                    r = Register.AT;
-                    return true;
+                    return Register.AT;
                 case "$v0":
-                    r = Register.V0;
-                    return true;
+                    return Register.V0;
                 case "$v1":
-                    r = Register.V1;
-                    return true;
+                    return Register.V1;
                 case "$a0":
-                    r = Register.A0;
-                    return true;
+                    return Register.A0;
                 case "$a1":
-                    r = Register.A1;
-                    return true;
+                    return Register.A1;
                 case "$a2":
-                    r = Register.A2;
-                    return true;
+                    return Register.A2;
                 case "$a3":
-                    r = Register.A3;
-                    return true;
+                    return Register.A3;
                 case "$t0":
-                    r = Register.T0;
-                    return true;
+                    return Register.T0;
                 case "$t1":
-                    r = Register.T1;
-                    return true;
+                    return Register.T1;
                 case "$t2":
-                    r = Register.T2;
-                    return true;
+                    return Register.T2;
                 case "$t3":
-                    r = Register.T3;
-                    return true;
+                    return Register.T3;
                 case "$t4":
-                    r = Register.T4;
-                    return true;
+                    return Register.T4;
                 case "$t5":
-                    r = Register.T5;
-                    return true;
+                    return Register.T5;
                 case "$t6":
-                    r = Register.T6;
-                    return true;
+                    return Register.T6;
                 case "$t7":
-                    r = Register.T7;
-                    return true;
+                    return Register.T7;
                 case "$t8":
-                    r = Register.T8;
-                    return true;
+                    return Register.T8;
                 case "$t9":
-                    r = Register.T9;
-                    return true;
+                    return Register.T9;
                 case "$s0":
-                    r = Register.S0;
-                    return true;
+                    return Register.S0;
                 case "$s1":
-                    r = Register.S1;
-                    return true;
+                    return Register.S1;
                 case "$s2":
-                    r = Register.S2;
-                    return true;
+                    return Register.S2;
                 case "$s3":
-                    r = Register.S3;
-                    return true;
+                    return Register.S3;
                 case "$s4":
-                    r = Register.S4;
-                    return true;
+                    return Register.S4;
                 case "$s5":
-                    r = Register.S5;
-                    return true;
+                    return Register.S5;
                 case "$s6":
-                    r = Register.S6;
-                    return true;
+                    return Register.S6;
                 case "$s7":
-                    r = Register.S7;
-                    return true;
+                    return Register.S7;
                 case "$k0":
-                    r = Register.K0;
-                    return true;
+                    return Register.K0;
                 case "$k1":
-                    r = Register.K1;
-                    return true;
+                    return Register.K1;
                 case "$gp":
-                    r = Register.GP;
-                    return true;
+                    return Register.GP;
                 case "$sp":
-                    r = Register.SP;
-                    return true;
+                    return Register.SP;
                 case "$fp":
-                    r = Register.FP;
-                    return true;
+                    return Register.FP;
                 case "$ra":
-                    r = Register.RA;
-                    return true;
+                    return Register.RA;
                 default:
-                    return false;
+                    return Register.NONE;
             }
         }
 
-        public static bool StringToOperation(string s, Operation o)
+        public static Operation StringToOperation(string s)
         {
             if (String.IsNullOrEmpty(s))
             {
-                return false;
+                return Operation.None;
             }
 
             string lowerCase = s.ToLower();
@@ -129,94 +97,65 @@ namespace Assembler
             switch (lowerCase)
             {
                 case "add":
-                    o = Operation.Add;
-                    return true;
+                    return Operation.Add;
                 case "sub":
-                    o = Operation.Sub;
-                    return true;
+                    return Operation.Sub;
                 case "addi":
-                    o = Operation.Addi;
-                    return true;
+                    return Operation.Addi;
                 case "mult":
-                    o = Operation.Mult;
-                    return true;
+                    return Operation.Mult;
                 case "div":
-                    o = Operation.Div;
-                    return true;
+                    return Operation.Div;
                 case "slt":
-                    o = Operation.Slt;
-                    return true;
+                    return Operation.Slt;
                 case "slti":
-                    o = Operation.Slti;
-                    return true;
+                    return Operation.Slti;
                 case "and":
-                    o = Operation.And;
-                    return true;
+                    return Operation.And;
                 case "or":
-                    o = Operation.Or;
-                    return true;
+                    return Operation.Or;
                 case "nor":
-                    o = Operation.Nor;
-                    return true;
+                    return Operation.Nor;
                 case "xor":
-                    o = Operation.Xor;
-                    return true;
+                    return Operation.Xor;
                 case "andi":
-                    o = Operation.Andi;
-                    return true;
+                    return Operation.Andi;
                 case "ori":
-                    o = Operation.Ori;
-                    return true;
+                    return Operation.Ori;
                 case "xori":
-                    o = Operation.Xori;
-                    return true;
+                    return Operation.Xori;
                 case "mfhi":
-                    o = Operation.Mfhi;
-                    return true;
+                    return Operation.Mfhi;
                 case "mflo":
-                    o = Operation.Mflo;
-                    return true;
+                    return Operation.Mflo;
                 case "lui":
-                    o = Operation.Lui;
-                    return true;
+                    return Operation.Lui;
                 case "sll":
-                    o = Operation.Sll;
-                    return true;
+                    return Operation.Sll;
                 case "srl":
-                    o = Operation.Srl;
-                    return true;
+                    return Operation.Srl;
                 case "sra":
-                    o = Operation.Sra;
-                    return true;
+                    return Operation.Sra;
                 case "lw":
-                    o = Operation.Lw;
-                    return true;
+                    return Operation.Lw;
                 case "lb":
-                    o = Operation.Lb;
-                    return true;
+                    return Operation.Lb;
                 case "sw":
-                    o = Operation.Sw;
-                    return true;
+                    return Operation.Sw;
                 case "sb":
-                    o = Operation.Sb;
-                    return true;
+                    return Operation.Sb;
                 case "beq":
-                    o = Operation.Beq;
-                    return true;
+                    return Operation.Beq;
                 case "bne":
-                    o = Operation.Bne;
-                    return true;
+                    return Operation.Bne;
                 case "j":
-                    o = Operation.J;
-                    return true;
+                    return Operation.J;
                 case "jr":
-                    o = Operation.Jr;
-                    return true;
+                    return Operation.Jr;
                 case "jal":
-                    o = Operation.Jal;
-                    return true;
+                    return Operation.Jal;
                 default:
-                    return false;
+                    return Operation.None;
             }
         }
 
@@ -224,7 +163,7 @@ namespace Assembler
         {
             if (!String.IsNullOrEmpty(file))
             {
-                return Path.GetExtension(file).ToLower() == "asm";
+                return Path.GetExtension(file).ToLower() == ".asm";
             }
 
             return false;

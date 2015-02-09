@@ -38,6 +38,7 @@ namespace Assembler
         GP = 28,
         SP = 29,
         FP = 30,
-        RA = 31
+        RA = 31,
+        NONE = 32
     }
 }
