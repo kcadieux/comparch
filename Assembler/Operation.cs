@@ -36,6 +36,7 @@ namespace Assembler
         Bne,
         J,
         Jr,
-        Jal
+        Jal,
+        Slr
     }
 }

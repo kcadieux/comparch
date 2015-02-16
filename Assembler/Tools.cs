@@ -133,6 +133,7 @@ namespace Assembler
                 case "sll":
                     return Operation.Sll;
                 case "srl":
+                case "slr":
                     return Operation.Srl;
                 case "sra":
                     return Operation.Sra;
