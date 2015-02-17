@@ -17,7 +17,7 @@ use ieee.numeric_std.all; -- allows use of the unsigned type
 ENTITY unpipelined_cpu IS
    
    PORT (
-      clk:             IN STD_LOGIC
+      clk:      	IN STD_LOGIC
    );
    
    

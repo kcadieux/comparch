@@ -17,14 +17,14 @@ use ieee.numeric_std.all; -- allows use of the unsigned type
 ENTITY register_file IS
    
    PORT (
-      clk:             IN    STD_LOGIC;
+      clk:           IN    STD_LOGIC;
       
-      read_addr:      IN    STD_LOGIC_VECTOR(4 DOWNTO 0) := (others => '0');
-      read_data:      OUT   STD_LOGIC_VECTOR(31 DOWNTO 0);
+      read_addr:     IN    STD_LOGIC_VECTOR(4 DOWNTO 0) := (others => '0');
+      read_data:     OUT   STD_LOGIC_VECTOR(31 DOWNTO 0);
       
       we:            IN    STD_LOGIC := '0';
-      write_addr:      IN    STD_LOGIC_VECTOR(4 DOWNTO 0) := (others => '0');
-      write_data:      IN    STD_LOGIC_VECTOR(31 DOWNTO 0) := (others => '0')
+      write_addr:    IN    STD_LOGIC_VECTOR(4 DOWNTO 0) := (others => '0');
+      write_data:    IN    STD_LOGIC_VECTOR(31 DOWNTO 0) := (others => '0')
    );
    
    
@@ -33,15 +33,15 @@ END register_file;
 ARCHITECTURE rtl OF register_file IS
 
    TYPE REG_ARRAY IS ARRAY(1 TO 2**5-1) OF STD_LOGIC_VECTOR(31 DOWNTO 0);
-   SIGNAL regs            : REG_ARRAY;
+   SIGNAL regs          : REG_ARRAY;
    
-   SIGNAL read_addr_n    : NATURAL;
-   SIGNAL write_addr_n    : NATURAL;
+   SIGNAL read_addr_n   : NATURAL;
+   SIGNAL write_addr_n  : NATURAL;
    
 BEGIN
    
-   read_addr_n      <= to_integer(unsigned(read_addr));
-   write_addr_n   <= to_integer(unsigned(write_addr));
+   read_addr_n       <= to_integer(unsigned(read_addr));
+   write_addr_n      <= to_integer(unsigned(write_addr));
    
    register_file_process : PROCESS (read_addr_n, write_addr_n, clk, write_data, we)
    BEGIN
