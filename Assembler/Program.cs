@@ -49,10 +49,14 @@ namespace Assembler
         public static string Assemble()
         {
             string log = String.Empty;
-
+            int instruction = 0;
+            Dictionary<String, int> labelDictionary = new Dictionary<string, int>();
             string objFileName = Path.Combine(Path.GetDirectoryName(Tools.FullFilePath),
                 Path.GetFileNameWithoutExtension(Tools.FullFilePath)) + ".dat";
             var lines = File.ReadAllLines(Tools.FullFilePath);
+
+            FirstPassThroughAssembly(lines, labelDictionary);
+
             using (StreamWriter writer = new StreamWriter(File.Open(objFileName, FileMode.Create)))
             {
                 foreach (var line in lines)
@@ -76,10 +80,24 @@ namespace Assembler
                         continue;
                     }
 
+                    if (words[0].EndsWith(":"))
+                    {
+                        // This is a label, check if there is an instruction
+                        words = words.Skip(0).Take(words.Length - 1).ToArray();
+                    }
+                    else if (words[1].StartsWith(":"))
+                    {
+                        words = words.Skip(1).Take(words.Length - 2).ToArray();
+                    }
+
+                    if (words.Length == 0)
+                    {
+                        continue;
+                    }
+
                     Operation op = Tools.StringToOperation(words[0]);
                     if (op != Operation.None)
                     {
-                        //TODO
                         bool error = false;
                         switch (op)
                         {
@@ -200,15 +218,17 @@ namespace Assembler
                                 break;
                             case Operation.Beq:
                                 writer.Write("000100");
-                                error = !ImmediateEncodingTwoRegisters(writer, ref log, words);
+                                error = !EncodingTwoRegisters(writer, ref log, words);
+                                error &= !LabelEncodingRelative16(writer, ref log, words, labelDictionary, instruction);
                                 break;
                             case Operation.Bne:
                                 writer.Write("000101");
-                                error = !ImmediateEncodingTwoRegisters(writer, ref log, words);
+                                error = !EncodingTwoRegisters(writer, ref log, words);
+                                error &= !LabelEncodingRelative16(writer, ref log, words, labelDictionary, instruction);
                                 break;
                             case Operation.J:
                                 writer.Write("000010");
-                                error = !ImmediateEncodingZeroRegister(writer, ref log, words);
+                                error = !LabelEncoding26(writer, ref log, words, labelDictionary);
                                 break;
                             case Operation.Jr:
                                 writer.Write("000000");
@@ -217,9 +237,8 @@ namespace Assembler
                                 break;
                             case Operation.Jal:
                                 writer.Write("000011");
-                                error = !ImmediateEncodingZeroRegister(writer, ref log, words);
+                                error = !LabelEncoding26(writer, ref log, words, labelDictionary);
                                 break;
-
                             default:
                                 break;
                         }
@@ -229,12 +248,8 @@ namespace Assembler
                             break;
                         }
 
+                        instruction++;
                         writer.Write("\n");
-                    }
-                    else
-                    {
-                        // Label
-                        //TODO
                     }
                 }
             }
@@ -242,12 +257,82 @@ namespace Assembler
             return log;
         }
 
+        public static void FirstPassThroughAssembly(string[] lines, Dictionary<string, int> labelDictionary)
+        {
+            int instruction = 0;
+
+            foreach (var line in lines)
+            {
+                // Comment line
+                if (line[0] == '#')
+                {
+                    continue;
+                }
+
+                var words = line.Split(' ', '\t', ',').Where(w => !String.IsNullOrEmpty(w)).ToArray();
+
+                if (words.Length == 0)
+                {
+                    continue;
+                }
+
+                if (words[0].StartsWith("#"))
+                {
+                    continue;
+                }
+
+                Operation op = Tools.StringToOperation(words[0]);
+                if (op == Operation.None)
+                {
+                    // Label
+                    if (words[0].EndsWith(":") || words[1].StartsWith(":"))
+                    {
+                        string label = words[0].Split(':')[0];
+                        labelDictionary.Add(label, instruction);
+                    }
+                }
+                else
+                {
+                    instruction++;
+                }
+            }
+        }
+
+        public static bool LabelEncoding26(StreamWriter writer, ref string log, string[] words, Dictionary<string, int> labelDictionary)
+        {
+            int address;
+            if (labelDictionary.TryGetValue(words[1], out address))
+            {
+                writer.Write(CheckAndPadForXChar(Convert.ToString(address, 2), 26));
+                return true;
+            }
+
+            log += "Wrong label at line ";
+            log += words.Aggregate(log, (current, word) => current + word);
+            return false;
+        }
+
+        public static bool LabelEncodingRelative16(StreamWriter writer, ref string log, string[] words, Dictionary<string, int> labelDictionary, int addressCount)
+        {
+            int address;
+            if (labelDictionary.TryGetValue(words[3], out address))
+            {
+                short difference = (short)(address - addressCount);
+                writer.Write(CheckAndPadForXChar(Convert.ToString(difference, 2), 16));
+                return true;
+            }
+
+            log += "Wrong label at line ";
+            log += words.Aggregate(log, (current, word) => current + word);
+            return false;
+        }
+
         public static bool EncodingOneRegister(StreamWriter writer, ref string log, string[] words)
         {
             if (words.Count() < 2)
             {
                 log = log + "\n Error, not enough parameters on the line :  ";
-                log = words.Aggregate(log, (current, word) => current + word);
+                log += words.Aggregate(log, (current, word) => current + word);
                 return false;
             }
 
@@ -255,7 +340,7 @@ namespace Assembler
             if (dest == Register.NONE)
             {
                 log = log + "\n Error on the line :  ";
-                log = words.Aggregate(log, (current, word) => current + word + " ");
+                log += words.Aggregate(log, (current, word) => current + word + " ");
                 return false;
             }
 
@@ -272,7 +357,7 @@ namespace Assembler
             if (words.Count() < 3)
             {
                 log = log + "\n Error, not enough parameters on the line :  ";
-                log = words.Aggregate(log, (current, word) => current + word);
+                log += words.Aggregate(log, (current, word) => current + word);
                 return false;
             }
 
@@ -280,7 +365,7 @@ namespace Assembler
             if (dest == Register.NONE)
             {
                 log = log + "\n Error on the line :  ";
-                log = words.Aggregate(log, (current, word) => current + word + " ");
+                log += words.Aggregate(log, (current, word) => current + word + " ");
                 return false;
             }
 
@@ -293,7 +378,7 @@ namespace Assembler
             if (second == Register.NONE)
             {
                 log = log + "\n Error on the line :  ";
-                log = words.Aggregate(log, (current, word) => current + word + " ");
+                log += words.Aggregate(log, (current, word) => current + word + " ");
                 return false;
             }
 
@@ -310,7 +395,7 @@ namespace Assembler
             if (words.Count() < 4)
             {
                 log = log + "\n Error, not enough parameters on the line :  ";
-                log = words.Aggregate(log, (current, word) => current + word);
+                log += words.Aggregate(log, (current, word) => current + word);
                 return false;
             }
 
@@ -318,7 +403,7 @@ namespace Assembler
             if (dest == Register.NONE)
             {
                 log = log + "\n Error on the line :  ";
-                log = words.Aggregate(log, (current, word) => current + word + " ");
+                log += words.Aggregate(log, (current, word) => current + word + " ");
                 return false;
             }
 
@@ -331,7 +416,7 @@ namespace Assembler
             if (second == Register.NONE)
             {
                 log = log + "\n Error on the line :  ";
-                log = words.Aggregate(log, (current, word) => current + word + " ");
+                log += words.Aggregate(log, (current, word) => current + word + " ");
                 return false;
             }
 
@@ -344,7 +429,7 @@ namespace Assembler
             if (third == Register.NONE)
             {
                 log = log + "\n Error on the line :  ";
-                log = words.Aggregate(log, (current, word) => current + word + " ");
+                log += words.Aggregate(log, (current, word) => current + word + " ");
                 return false;
             }
 
@@ -361,7 +446,7 @@ namespace Assembler
             if (words.Count() < 4)
             {
                 log = log + "\n Error, not enough parameters on the line :  ";
-                log = words.Aggregate(log, (current, word) => current + word);
+                log += words.Aggregate(log, (current, word) => current + word);
                 return false;
             }
 
@@ -369,7 +454,7 @@ namespace Assembler
             if (dest == Register.NONE)
             {
                 log = log + "\n Error on the line :  ";
-                log = words.Aggregate(log, (current, word) => current + word + " ");
+                log += words.Aggregate(log, (current, word) => current + word + " ");
                 return false;
             }
 
@@ -382,7 +467,7 @@ namespace Assembler
             if (second == Register.NONE)
             {
                 log = log + "\n Error on the line :  ";
-                log = words.Aggregate(log, (current, word) => current + word + " ");
+                log += words.Aggregate(log, (current, word) => current + word + " ");
                 return false;
             }
 
@@ -400,7 +485,7 @@ namespace Assembler
             else
             {
                 log = log + "\n Error, invalid immediate value on the line :  ";
-                log = words.Aggregate(log, (current, word) => current + word + " ");
+                log += words.Aggregate(log, (current, word) => current + word + " ");
                 return false;
             }
 
@@ -412,7 +497,7 @@ namespace Assembler
             if (words.Count() < 4)
             {
                 log = log + "\n Error, not enough parameters on the line :  ";
-                log = words.Aggregate(log, (current, word) => current + word);
+                log += words.Aggregate(log, (current, word) => current + word);
                 return false;
             }
 
@@ -420,7 +505,7 @@ namespace Assembler
             if (dest == Register.NONE)
             {
                 log = log + "\n Error on the line :  ";
-                log = words.Aggregate(log, (current, word) => current + word + " ");
+                log += words.Aggregate(log, (current, word) => current + word + " ");
                 return false;
             }
 
@@ -433,7 +518,7 @@ namespace Assembler
             if (second == Register.NONE)
             {
                 log = log + "\n Error on the line :  ";
-                log = words.Aggregate(log, (current, word) => current + word + " ");
+                log += words.Aggregate(log, (current, word) => current + word + " ");
                 return false;
             }
 
@@ -451,7 +536,7 @@ namespace Assembler
             else
             {
                 log = log + "\n Error, invalid immediate value on the line :  ";
-                log = words.Aggregate(log, (current, word) => current + word + " ");
+                log += words.Aggregate(log, (current, word) => current + word + " ");
                 return false;
             }
 
@@ -463,7 +548,7 @@ namespace Assembler
             if (words.Count() < 3)
             {
                 log = log + "\n Error, not enough parameters on the line :  ";
-                log = words.Aggregate(log, (current, word) => current + word + " ");
+                log += words.Aggregate(log, (current, word) => current + word + " ");
                 return false;
             }
 
@@ -471,7 +556,7 @@ namespace Assembler
             if (dest == Register.NONE)
             {
                 log = log + "\n Error on the line :  ";
-                log = words.Aggregate(log, (current, word) => current + word + " ");
+                log += words.Aggregate(log, (current, word) => current + word + " ");
                 return false;
             }
 
@@ -489,7 +574,7 @@ namespace Assembler
             else
             {
                 log = log + "\n Error, invalid immediate value or bad format on the line :  ";
-                log = words.Aggregate(log, (current, word) => current + word + " ");
+                log += words.Aggregate(log, (current, word) => current + word + " ");
                 return false;
             }
 
@@ -501,7 +586,7 @@ namespace Assembler
             if (words.Count() < 2)
             {
                 log = log + "\n Error, not enough parameters on the line :  ";
-                log = words.Aggregate(log, (current, word) => current + word + " ");
+                log += words.Aggregate(log, (current, word) => current + word + " ");
                 return false;
             }
            
@@ -514,7 +599,7 @@ namespace Assembler
             else
             {
                 log = log + "\n Error, invalid immediate value or bad format on the line :  ";
-                log = words.Aggregate(log, (current, word) => current + word + " ");
+                log += words.Aggregate(log, (current, word) => current + word + " ");
                 return false;
             }
 
