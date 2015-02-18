@@ -34,6 +34,10 @@ ENTITY unpipelined_cpu IS
       
       --Debugging signals
       instr_finished:   OUT   STD_LOGIC;
+      progr_finished:   OUT   STD_LOGIC;
+      assertion:        OUT   STD_LOGIC;
+      assertion_pc:     OUT   NATURAL;
+      
       mem_dump:         IN    STD_LOGIC := '0' 
    );
    
@@ -41,7 +45,7 @@ END unpipelined_cpu;
 
 ARCHITECTURE rtl OF unpipelined_cpu IS
    
-   TYPE STATE IS (INITIAL, FETCH, EXEC, MEM, MEM_WB);
+   TYPE STATE IS (INITIAL, FETCH, EXEC, MEM, MEM_WB, HALT, ASSRT);
    
    SIGNAL current_state    : STATE     := INITIAL;
    SIGNAL pc               : NATURAL   := 0;
@@ -155,6 +159,7 @@ BEGIN
    reg_file : ENTITY work.register_file
       PORT MAP (
          clk            => clk,
+         reset          => reset,
       
          read1_addr     => reg_read1_addr,
          read1_data     => reg_read1_data,
@@ -167,13 +172,14 @@ BEGIN
       );
    
    fsm : PROCESS (clk, current_state, mem_rd_ready, mem_wr_done, mem_data, curr_instr_byte, pc, curr_memop_byte,
-                  id_opcode, id_funct, id_branch_addr, id_jump_addr, reg_read1_data, reg_read2_data)
+                  id_opcode, id_funct, id_branch_addr, id_jump_addr, reg_read1_data, reg_read2_data, id_imm_sign_ext)
    BEGIN
       IF (clk'event AND clk = '1') THEN
          CASE current_state IS
          
             WHEN INITIAL =>
-               current_state <= FETCH;
+               current_state     <= FETCH;
+               curr_instr_byte   <= 0;
          
             WHEN FETCH =>
                IF (mem_rd_ready = '1') THEN
@@ -214,6 +220,13 @@ BEGIN
                
                ELSIF (id_opcode = OP_JAL) THEN
                   pc <= to_integer(unsigned(id_jump_addr));
+                  
+               ELSIF (id_opcode = OP_HALT) THEN
+                  current_state  <= HALT;
+               
+               ELSIF ((id_opcode = OP_ASRT  AND reg_read1_data /= reg_read2_data) OR
+                      (id_opcode = OP_ASRTI AND reg_read1_data /= id_imm_sign_ext)) THEN
+                  current_state  <= ASSRT;
                
                END IF;
                
@@ -246,6 +259,10 @@ BEGIN
          
          END CASE;
       END IF;
+      
+      IF (reset'event AND reset = '1') THEN
+         current_state <= INITIAL;
+      END IF;
    END PROCESS;
    
    
@@ -269,19 +286,26 @@ BEGIN
       alu_funct      <= (others => '0');
       alu_shamt      <= (others => '0');
       
+      instr_finished <= '0';
+      
       
       CASE current_state IS
          WHEN INITIAL =>
             mem_initialize <= '1';
       
          WHEN FETCH =>
-            mem_re      <= '1';
-            mem_address <= pc + curr_instr_byte;
+            mem_re         <= '1';
+            mem_address    <= pc + curr_instr_byte;
+            IF (curr_instr_byte = 0) THEN
+               instr_finished <= '1';
+            END IF;
             
          WHEN EXEC =>
+         
+            reg_read1_addr <= id_rs;
+            reg_read2_addr <= id_rt;
+            
             IF (id_opcode = OP_ALU) THEN
-               reg_read1_addr <= id_rs;
-               reg_read2_addr <= id_rt;
                reg_write_addr <= id_rd;
             
                alu_a          <= reg_read1_data;
@@ -299,7 +323,6 @@ BEGIN
             ELSIF (id_opcode = OP_ADDI OR id_opcode = OP_SLTI OR id_opcode = OP_ANDI OR
                    id_opcode = OP_ORI  OR id_opcode = OP_XORI) THEN
                    
-               reg_read1_addr <= id_rs;
                reg_write_addr <= id_rt;
             
                alu_a          <= reg_read1_data;
@@ -358,6 +381,14 @@ BEGIN
             reg_we         <= '1';
             reg_write_addr <= id_rt;
             reg_write_data <= load_buffer;
+            
+         WHEN HALT =>
+            progr_finished <= '1';
+            
+         WHEN ASSRT =>
+            assertion      <= '1';
+            assertion_pc   <= pc - 4;
+            
          WHEN OTHERS =>
             
       END CASE;

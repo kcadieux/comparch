@@ -20,6 +20,7 @@ ENTITY register_file IS
    
    PORT (
       clk:           IN    STD_LOGIC;
+      reset:         IN    STD_LOGIC;
       
       read1_addr:    IN    STD_LOGIC_VECTOR(REG_ADDR_WIDTH-1 DOWNTO 0) := (others => '0');
       read1_data:    OUT   STD_LOGIC_VECTOR(REG_DATA_WIDTH-1 DOWNTO 0);
@@ -49,21 +50,21 @@ BEGIN
    read2_addr_n      <= to_integer(unsigned(read2_addr));
    write_addr_n      <= to_integer(unsigned(write_addr));
    
-   register_file_process : PROCESS (write_addr_n, clk, write_data, we)
+   register_file_process : PROCESS (write_addr_n, clk, write_data, we, reset)
    BEGIN
-      --Initialize memory during simulation.
-      IF (now < 1 ps) THEN
-         FOR i IN 1 TO 2**REG_ADDR_WIDTH-1 LOOP
-            regs(i) <= (others => '0');
-         END LOOP;
-      END IF;
-   
       --Writes happen at the middle of the clock cycle.
       --Therefore, this component is sensitive to falling edges
       IF (clk'event AND clk = '0') THEN
          IF (we = '1' AND write_addr_n > 0) THEN
             regs(write_addr_n) <= write_data;
          END IF;
+      END IF;
+      
+      --Initialize memory during simulation.
+      IF (now < 1 ps OR (reset'event AND reset = '1')) THEN
+         FOR i IN 1 TO 2**REG_ADDR_WIDTH-1 LOOP
+            regs(i) <= (others => '0');
+         END LOOP;
       END IF;
    END PROCESS;
    
