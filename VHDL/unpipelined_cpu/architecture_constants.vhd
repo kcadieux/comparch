@@ -1,0 +1,18 @@
+
+PACKAGE architecture_constants IS
+   CONSTANT    MEM_ADDR_WIDTH    : INTEGER := 32;
+   CONSTANT    MEM_DATA_WIDTH    : INTEGER := 8;
+   
+   CONSTANT    REG_ADDR_WIDTH    : INTEGER := 5;
+   CONSTANT    REG_DATA_WIDTH    : INTEGER := 32;
+   
+   CONSTANT    ALU_FUNCT_WIDTH   : INTEGER := 6;
+   CONSTANT    ALU_SHAMT_WIDTH   : INTEGER := 5;
+   
+   CONSTANT    OP_CODE_WIDTH     : INTEGER := 6;
+   
+   CONSTANT    NB_INSTR_BYTES    : INTEGER := 4;
+   CONSTANT    INSTR_WIDTH       : INTEGER := 32;
+   
+   CONSTANT    IMMEDIATE_WIDTH   : INTEGER := 16;
+END architecture_constants;

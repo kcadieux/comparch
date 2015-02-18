@@ -42,12 +42,14 @@ BEGIN
 	
 		--	Initializing the memory from a file
 		if (initialize'event and initialize='1') then
+         report "Allo!";
 			  --Open the file read.txt from the specified location for reading(READ_MODE).
 			file_open(file_pointer,File_Address_Read,READ_MODE);    
 			while not endfile(file_pointer) loop --till the end of file is reached continue.
 				readline (file_pointer,line_num);  --Read the whole line from the file
 			  --Read the contents of the line from  the file into a variable.
 				READ (line_num,line_content); 
+            report line_content;
 			  --For each character in the line convert it to binary value.
 			  --And then store it in a signal named 'bin_value'.
 				for j in 1 to Num_Bits_in_Word loop        
