@@ -334,10 +334,18 @@ BEGIN
             END IF;
             
          WHEN MEM =>
+            reg_read1_addr <= id_rs;
+            reg_read2_addr <= id_rt;
+            
+            alu_a          <= reg_read1_data;
+            alu_b          <= id_imm_sign_ext;
+            alu_funct      <= FUNCT_ADD;
+         
             IF (id_opcode = OP_LB OR id_opcode = OP_LW) THEN
                mem_re   <= '1';
             ELSE 
                mem_we   <= '1';
+               mem_data <= reg_read2_data(7 DOWNTO 0);
             END IF;
             
             IF (id_opcode = OP_LB OR id_opcode = OP_SB) THEN
