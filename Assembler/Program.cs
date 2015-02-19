@@ -56,8 +56,8 @@ namespace Assembler
             var lines = File.ReadAllLines(Tools.FullFilePath);
 
             FirstPassThroughAssembly(lines, labelDictionary);
-
-            using (StreamWriter writer = new StreamWriter(File.Open(objFileName, FileMode.Create)))
+            using (var writer = new ByteWriter(objFileName))
+            //using (StreamWriter writer = new StreamWriter(File.Open(objFileName, FileMode.Create)))
             {
                 foreach (var line in lines)
                 {
@@ -202,19 +202,19 @@ namespace Assembler
                                 break;
                             case Operation.Lw:
                                 writer.Write("100011");
-                                error = !ImmediateEncodingTwoRegisters(writer, ref log, words);
+                                error = !ImmediateEncodingTwoRegistersOffset(writer, ref log, words);
                                 break;
                             case Operation.Lb:
                                 writer.Write("100000");
-                                error = !ImmediateEncodingTwoRegisters(writer, ref log, words);
+                                error = !ImmediateEncodingTwoRegistersOffset(writer, ref log, words);
                                 break;
                             case Operation.Sw:
                                 writer.Write("101011");
-                                error = !ImmediateEncodingTwoRegisters(writer, ref log, words);
+                                error = !ImmediateEncodingTwoRegistersOffset(writer, ref log, words);
                                 break;
                             case Operation.Sb:
                                 writer.Write("101000");
-                                error = !ImmediateEncodingTwoRegisters(writer, ref log, words);
+                                error = !ImmediateEncodingTwoRegistersOffset(writer, ref log, words);
                                 break;
                             case Operation.Beq:
                                 writer.Write("000100");
@@ -249,7 +249,6 @@ namespace Assembler
                         }
 
                         instruction++;
-                        writer.Write("\n");
                     }
                 }
             }
@@ -298,7 +297,7 @@ namespace Assembler
             }
         }
 
-        public static bool LabelEncoding26(StreamWriter writer, ref string log, string[] words, Dictionary<string, int> labelDictionary)
+        public static bool LabelEncoding26(ByteWriter writer, ref string log, string[] words, Dictionary<string, int> labelDictionary)
         {
             int address;
             if (labelDictionary.TryGetValue(words[1], out address))
@@ -308,11 +307,11 @@ namespace Assembler
             }
 
             log += "Wrong label at line ";
-            log += words.Aggregate(log, (current, word) => current + word);
+            log = words.Aggregate(log, (current, word) => current + word);
             return false;
         }
 
-        public static bool LabelEncodingRelative16(StreamWriter writer, ref string log, string[] words, Dictionary<string, int> labelDictionary, int addressCount)
+        public static bool LabelEncodingRelative16(ByteWriter writer, ref string log, string[] words, Dictionary<string, int> labelDictionary, int addressCount)
         {
             int address;
             if (labelDictionary.TryGetValue(words[3], out address))
@@ -323,16 +322,16 @@ namespace Assembler
             }
 
             log += "Wrong label at line ";
-            log += words.Aggregate(log, (current, word) => current + word);
+            log = words.Aggregate(log, (current, word) => current + word);
             return false;
         }
 
-        public static bool EncodingOneRegister(StreamWriter writer, ref string log, string[] words)
+        public static bool EncodingOneRegister(ByteWriter writer, ref string log, string[] words)
         {
             if (words.Count() < 2)
             {
                 log = log + "\n Error, not enough parameters on the line :  ";
-                log += words.Aggregate(log, (current, word) => current + word);
+                log = words.Aggregate(log, (current, word) => current + word);
                 return false;
             }
 
@@ -340,7 +339,7 @@ namespace Assembler
             if (dest == Register.NONE)
             {
                 log = log + "\n Error on the line :  ";
-                log += words.Aggregate(log, (current, word) => current + word + " ");
+                log = words.Aggregate(log, (current, word) => current + word + " ");
                 return false;
             }
 
@@ -352,12 +351,12 @@ namespace Assembler
             return true;
         }
 
-        public static bool EncodingTwoRegisters(StreamWriter writer, ref string log, string[] words)
+        public static bool EncodingTwoRegisters(ByteWriter writer, ref string log, string[] words)
         {
             if (words.Count() < 3)
             {
                 log = log + "\n Error, not enough parameters on the line :  ";
-                log += words.Aggregate(log, (current, word) => current + word);
+                log = words.Aggregate(log, (current, word) => current + word);
                 return false;
             }
 
@@ -365,7 +364,7 @@ namespace Assembler
             if (dest == Register.NONE)
             {
                 log = log + "\n Error on the line :  ";
-                log += words.Aggregate(log, (current, word) => current + word + " ");
+                log = words.Aggregate(log, (current, word) => current + word + " ");
                 return false;
             }
 
@@ -378,7 +377,7 @@ namespace Assembler
             if (second == Register.NONE)
             {
                 log = log + "\n Error on the line :  ";
-                log += words.Aggregate(log, (current, word) => current + word + " ");
+                log = words.Aggregate(log, (current, word) => current + word + " ");
                 return false;
             }
 
@@ -390,20 +389,20 @@ namespace Assembler
             return true;
         }
 
-        public static bool EncodingThreeRegisters(StreamWriter writer, ref string log, string[] words)
+        public static bool EncodingThreeRegisters(ByteWriter writer, ref string log, string[] words)
         {
             if (words.Count() < 4)
             {
                 log = log + "\n Error, not enough parameters on the line :  ";
-                log += words.Aggregate(log, (current, word) => current + word);
+                log = words.Aggregate(log, (current, word) => current + word);
                 return false;
             }
 
-            Register dest = Tools.StringToRegister(words[1]);
+            Register dest = Tools.StringToRegister(words[2]);
             if (dest == Register.NONE)
             {
                 log = log + "\n Error on the line :  ";
-                log += words.Aggregate(log, (current, word) => current + word + " ");
+                log = words.Aggregate(log, (current, word) => current + word + " ");
                 return false;
             }
 
@@ -412,11 +411,11 @@ namespace Assembler
 
             writer.Write(s);
 
-            Register second = Tools.StringToRegister(words[2]);
+            Register second = Tools.StringToRegister(words[3]);
             if (second == Register.NONE)
             {
                 log = log + "\n Error on the line :  ";
-                log += words.Aggregate(log, (current, word) => current + word + " ");
+                log = words.Aggregate(log, (current, word) => current + word + " ");
                 return false;
             }
 
@@ -425,11 +424,11 @@ namespace Assembler
 
             writer.Write(s);
 
-            Register third = Tools.StringToRegister(words[3]);
+            Register third = Tools.StringToRegister(words[1]);
             if (third == Register.NONE)
             {
                 log = log + "\n Error on the line :  ";
-                log += words.Aggregate(log, (current, word) => current + word + " ");
+                log = words.Aggregate(log, (current, word) => current + word + " ");
                 return false;
             }
 
@@ -441,20 +440,20 @@ namespace Assembler
             return true;
         }
 
-        public static bool ImmediateEncoding0To32TwoRegisters(StreamWriter writer, ref string log, string[] words)
+        public static bool ImmediateEncoding0To32TwoRegisters(ByteWriter writer, ref string log, string[] words)
         {
             if (words.Count() < 4)
             {
                 log = log + "\n Error, not enough parameters on the line :  ";
-                log += words.Aggregate(log, (current, word) => current + word);
+                log = words.Aggregate(log, (current, word) => current + word);
                 return false;
             }
 
-            Register dest = Tools.StringToRegister(words[1]);
+            Register dest = Tools.StringToRegister(words[2]);
             if (dest == Register.NONE)
             {
                 log = log + "\n Error on the line :  ";
-                log += words.Aggregate(log, (current, word) => current + word + " ");
+                log = words.Aggregate(log, (current, word) => current + word + " ");
                 return false;
             }
 
@@ -463,11 +462,12 @@ namespace Assembler
 
             writer.Write(s);
 
-            Register second = Tools.StringToRegister(words[2]);
+
+            Register second = Tools.StringToRegister(words[1]);
             if (second == Register.NONE)
             {
                 log = log + "\n Error on the line :  ";
-                log += words.Aggregate(log, (current, word) => current + word + " ");
+                log = words.Aggregate(log, (current, word) => current + word + " ");
                 return false;
             }
 
@@ -485,27 +485,27 @@ namespace Assembler
             else
             {
                 log = log + "\n Error, invalid immediate value on the line :  ";
-                log += words.Aggregate(log, (current, word) => current + word + " ");
+                log = words.Aggregate(log, (current, word) => current + word + " ");
                 return false;
             }
-
+            
             return true;
         }
 
-        public static bool ImmediateEncodingTwoRegisters(StreamWriter writer, ref string log, string[] words)
+        public static bool ImmediateEncodingTwoRegisters(ByteWriter writer, ref string log, string[] words)
         {
             if (words.Count() < 4)
             {
                 log = log + "\n Error, not enough parameters on the line :  ";
-                log += words.Aggregate(log, (current, word) => current + word);
+                log = words.Aggregate(log, (current, word) => current + word);
                 return false;
             }
 
-            Register dest = Tools.StringToRegister(words[1]);
+            Register dest = Tools.StringToRegister(words[2]);
             if (dest == Register.NONE)
             {
                 log = log + "\n Error on the line :  ";
-                log += words.Aggregate(log, (current, word) => current + word + " ");
+                log = words.Aggregate(log, (current, word) => current + word + " ");
                 return false;
             }
 
@@ -514,11 +514,11 @@ namespace Assembler
 
             writer.Write(s);
 
-            Register second = Tools.StringToRegister(words[2]);
+            Register second = Tools.StringToRegister(words[1]);
             if (second == Register.NONE)
             {
                 log = log + "\n Error on the line :  ";
-                log += words.Aggregate(log, (current, word) => current + word + " ");
+                log = words.Aggregate(log, (current, word) => current + word + " ");
                 return false;
             }
 
@@ -536,19 +536,79 @@ namespace Assembler
             else
             {
                 log = log + "\n Error, invalid immediate value on the line :  ";
-                log += words.Aggregate(log, (current, word) => current + word + " ");
+                log = words.Aggregate(log, (current, word) => current + word + " ");
                 return false;
             }
 
             return true;
         }
 
-        public static bool ImmediateEncodingOneRegister(StreamWriter writer, ref string log, string[] words)
+        public static bool ImmediateEncodingTwoRegistersOffset(ByteWriter writer, ref string log, string[] words)
         {
             if (words.Count() < 3)
             {
                 log = log + "\n Error, not enough parameters on the line :  ";
-                log += words.Aggregate(log, (current, word) => current + word + " ");
+                log = words.Aggregate(log, (current, word) => current + " " + word);
+                return false;
+            }
+
+            // Split the string of the format offset($reg)
+            var sub = words[2].Split('(', ')');
+            if (sub.Count() < 2)
+            {
+                log = log + "\n Error, wrong parameter format on the line :  ";
+                log = words.Aggregate(log, (current, word) => current + " " + word);
+                return false;
+            }
+            
+            Register dest = Tools.StringToRegister(sub[1]);
+            if (dest == Register.NONE)
+            {
+                log = log + "\n Error on the line : ";
+                log = words.Aggregate(log, (current, word) => current + word + " ");
+                return false;
+            }
+
+            var s = Convert.ToString((byte)dest, 2);
+            s = CheckAndPadForXChar(s, 5);
+
+            writer.Write(s);
+
+            Register second = Tools.StringToRegister(words[1]);
+            if (second == Register.NONE)
+            {
+                log = log + "\n Error on the line :  ";
+                log = words.Aggregate(log, (current, word) => current + word + " ");
+                return false;
+            }
+
+            s = Convert.ToString((byte)second, 2);
+            s = CheckAndPadForXChar(s, 5);
+
+            writer.Write(s);
+
+            short immediate = 0;
+            if (Int16.TryParse(sub[0], out immediate))
+            {
+                s = CheckAndPadForXChar(Convert.ToString(immediate, 2), 16);
+                writer.Write(s);
+            }
+            else
+            {
+                log = log + "\n Error, invalid immediate value on the line :  ";
+                log = words.Aggregate(log, (current, word) => current + word + " ");
+                return false;
+            }
+
+            return true;
+        }
+
+        public static bool ImmediateEncodingOneRegister(ByteWriter writer, ref string log, string[] words)
+        {
+            if (words.Count() < 3)
+            {
+                log = log + "\n Error, not enough parameters on the line :  ";
+                log = words.Aggregate(log, (current, word) => current + word + " ");
                 return false;
             }
 
@@ -556,7 +616,7 @@ namespace Assembler
             if (dest == Register.NONE)
             {
                 log = log + "\n Error on the line :  ";
-                log += words.Aggregate(log, (current, word) => current + word + " ");
+                log = words.Aggregate(log, (current, word) => current + word + " ");
                 return false;
             }
 
@@ -574,19 +634,19 @@ namespace Assembler
             else
             {
                 log = log + "\n Error, invalid immediate value or bad format on the line :  ";
-                log += words.Aggregate(log, (current, word) => current + word + " ");
+                log = words.Aggregate(log, (current, word) => current + word + " ");
                 return false;
             }
 
             return true;
         }
 
-        public static bool ImmediateEncodingZeroRegister(StreamWriter writer, ref string log, string[] words)
+        public static bool ImmediateEncodingZeroRegister(ByteWriter writer, ref string log, string[] words)
         {
             if (words.Count() < 2)
             {
                 log = log + "\n Error, not enough parameters on the line :  ";
-                log += words.Aggregate(log, (current, word) => current + word + " ");
+                log = words.Aggregate(log, (current, word) => current + word + " ");
                 return false;
             }
            
@@ -599,7 +659,7 @@ namespace Assembler
             else
             {
                 log = log + "\n Error, invalid immediate value or bad format on the line :  ";
-                log += words.Aggregate(log, (current, word) => current + word + " ");
+                log = words.Aggregate(log, (current, word) => current + word + " ");
                 return false;
             }
 

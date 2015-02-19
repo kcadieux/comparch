@@ -5,10 +5,10 @@ slti $t4 $t5 -33
 ori $t4 $t5 -33
 xori $t4 $t5 -33
 lui $t4 -33
-lw $t4, $t5, -33
-lb $t4, $t5, -33
-sw $t4, $t5, -33
-sb $t4, $t5, -33
+lw $t4, -33($t5) 
+lb $t4, -33($t5) 
+sw $t4, -33($t5) 
+sb $t4, -33($t5) 
 LABEL2 :
 beq $t4, $t5, LABEL2
 bne $t4, $t5, LABEL1
