@@ -18,6 +18,36 @@ namespace Assembler
                 return;
             }
 
+            // Single instruction
+            if (args[0] == "-i")
+            {
+                if (args.Count() <= 1)
+                {
+                    Console.Out.WriteLine("To know how to use this function, use the help (-h)");
+                    return;
+                }
+
+                string tempFileName = Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location), "temp.asm");
+                string binaryFileName = Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location), "temp.dat");
+                File.WriteAllText(tempFileName, args[1]);
+                string error = Assemble(tempFileName);
+
+                File.Delete(tempFileName);
+
+
+                if (String.IsNullOrEmpty(error))
+                {
+                    Console.Out.WriteLine(File.ReadAllText(binaryFileName));
+                }
+                else
+                {
+                    Console.Out.WriteLine(error);
+                }
+
+                File.Delete(binaryFileName);
+                return;
+            }
+
             // File option
             if (!Tools.FileExists(args[0]))
             {
@@ -31,7 +61,9 @@ namespace Assembler
                 return;
             }
 
-            string errorLog = Assemble();
+            string objFileName = Path.Combine(Path.GetDirectoryName(Tools.FullFilePath),
+                Path.GetFileNameWithoutExtension(Tools.FullFilePath)) + ".dat";
+            string errorLog = Assemble(objFileName);
 
             if (String.IsNullOrEmpty(errorLog))
             {
@@ -46,14 +78,16 @@ namespace Assembler
             }
         }
 
-        public static string Assemble()
+        public static string Assemble(string filePath)
         {
             string log = String.Empty;
             int instruction = 0;
             Dictionary<String, int> labelDictionary = new Dictionary<string, int>();
-            string objFileName = Path.Combine(Path.GetDirectoryName(Tools.FullFilePath),
-                Path.GetFileNameWithoutExtension(Tools.FullFilePath)) + ".dat";
-            var lines = File.ReadAllLines(Tools.FullFilePath);
+            
+            var lines = File.ReadAllLines(filePath);
+
+            string objFileName = Path.Combine(Path.GetDirectoryName(filePath),
+                Path.GetFileNameWithoutExtension(filePath)) + ".dat";
 
             FirstPassThroughAssembly(lines, labelDictionary);
             using (var writer = new ByteWriter(objFileName))
