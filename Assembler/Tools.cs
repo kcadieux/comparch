@@ -16,68 +16,100 @@ namespace Assembler
 
             switch (lowerCase)
             {
+                case "$0":
                 case "$zero":
                     return Register.Zero;
+                case "$1":
                 case "$at":
                     return Register.AT;
+                case "$2":
                 case "$v0":
                     return Register.V0;
+                case "$3":
                 case "$v1":
                     return Register.V1;
+                case "$4":
                 case "$a0":
                     return Register.A0;
+                case "$5":
                 case "$a1":
                     return Register.A1;
+                case "$6":
                 case "$a2":
                     return Register.A2;
+                case "$7":
                 case "$a3":
                     return Register.A3;
+                case "$8":
                 case "$t0":
                     return Register.T0;
+                case "$9":
                 case "$t1":
                     return Register.T1;
+                case "$10":
                 case "$t2":
                     return Register.T2;
+                case "$11":
                 case "$t3":
                     return Register.T3;
+                case "$12":
                 case "$t4":
                     return Register.T4;
+                case "$13":
                 case "$t5":
                     return Register.T5;
+                case "$14":
                 case "$t6":
                     return Register.T6;
+                case "$15":
                 case "$t7":
                     return Register.T7;
+                case "$16":
                 case "$t8":
                     return Register.T8;
+                case "$17":
                 case "$t9":
                     return Register.T9;
+                case "$18":
                 case "$s0":
                     return Register.S0;
+                case "$19":
                 case "$s1":
                     return Register.S1;
+                case "$20":
                 case "$s2":
                     return Register.S2;
+                case "$21":
                 case "$s3":
                     return Register.S3;
+                case "$22":
                 case "$s4":
                     return Register.S4;
+                case "$23":
                 case "$s5":
                     return Register.S5;
+                case "$24":
                 case "$s6":
                     return Register.S6;
+                case "$25":
                 case "$s7":
                     return Register.S7;
+                case "$26":
                 case "$k0":
                     return Register.K0;
+                case "$27":
                 case "$k1":
                     return Register.K1;
+                case "$28":
                 case "$gp":
                     return Register.GP;
+                case "$29":
                 case "$sp":
                     return Register.SP;
+                case "$30":
                 case "$fp":
                     return Register.FP;
+                case "$31":
                 case "$ra":
                     return Register.RA;
                 default:

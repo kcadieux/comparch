@@ -1,10 +1,10 @@
-addi $t6 $t6 103
-andi $t4 $t5 -33
+addi $6 $6 -33
+andi $t6 $t6 -33
 LABEL1:
 slti $t4 $t5 -33
 ori $t4 $t5 -33
 xori $t4 $t5 -33
-lui $t4 -33
+lui $4 -33
 lw $t4, -33($t5) 
 lb $t4, -33($t5) 
 sw $t4, -33($t5) 
