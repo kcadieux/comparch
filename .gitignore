@@ -1,7 +1,11 @@
 *.suo
 *.bak
 *.wlf
+*.user
+transcript
 VHDL/**/db/
 VHDL/**/incremental_db/
 VHDL/**/output_files/
 VHDL/**/work/
+Assembler/**/bin/
+Assembler/**/obj/

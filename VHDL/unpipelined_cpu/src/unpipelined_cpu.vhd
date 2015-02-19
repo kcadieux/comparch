@@ -17,6 +17,7 @@ use ieee.numeric_std.all; -- allows use of the unsigned type
 use work.architecture_constants.all;
 use work.op_codes.all;
 use work.alu_codes.all;
+use work.debug_types.all;
 
 ENTITY unpipelined_cpu IS
    
@@ -24,8 +25,8 @@ ENTITY unpipelined_cpu IS
       File_Address_Read    : STRING    := "Init.dat";
       File_Address_Write   : STRING    := "MemCon.dat";
       Mem_Size             : INTEGER   := 256;
-      Read_Delay           : INTEGER   := 1; 
-      Write_Delay          : INTEGER   := 1
+      Read_Delay           : INTEGER   := 0; 
+      Write_Delay          : INTEGER   := 0
    );
    PORT (
       clk:      	      IN    STD_LOGIC;
@@ -33,12 +34,16 @@ ENTITY unpipelined_cpu IS
       
       
       --Debugging signals
-      instr_finished:   OUT   STD_LOGIC;
-      progr_finished:   OUT   STD_LOGIC;
+      finished_instr:   OUT   STD_LOGIC;
+      finished_prog:    OUT   STD_LOGIC;
       assertion:        OUT   STD_LOGIC;
       assertion_pc:     OUT   NATURAL;
       
-      mem_dump:         IN    STD_LOGIC := '0' 
+      live_mode:        IN    STD_LOGIC := '0';
+      live_instr:       IN    STD_LOGIC_VECTOR(INSTR_WIDTH-1 DOWNTO 0) := (others => '0');
+      mem_dump:         IN    STD_LOGIC := '0';
+      
+      regs:             OUT   REGISTER_ARRAY_DBG
    );
    
 END unpipelined_cpu;
@@ -184,16 +189,20 @@ BEGIN
             WHEN FETCH =>
                IF (mem_rd_ready = '1') THEN
                   curr_instr(8*(NB_INSTR_BYTES - curr_instr_byte) - 1 DOWNTO 8*(NB_INSTR_BYTES - curr_instr_byte - 1)) <= mem_data;
-               END IF;
-            
-               IF (curr_instr_byte < NB_INSTR_BYTES - 1 AND mem_rd_ready = '1') THEN
-                  curr_instr_byte <= curr_instr_byte + 1;
                   
-               ELSIF (curr_instr_byte = NB_INSTR_BYTES - 1 AND mem_rd_ready = '1') THEN
-                  current_state     <= EXEC;
-                  curr_instr_byte   <= 0;
-                  pc <= pc + 4;
+                  IF (curr_instr_byte < NB_INSTR_BYTES - 1) THEN
+                     curr_instr_byte <= curr_instr_byte + 1;
+                  ELSE
+                     current_state     <= EXEC;
+                     curr_instr_byte   <= 0;
+                     pc <= pc + 4;
+                  END IF;
+                  
+               ELSIF (live_mode = '1') THEN
+                  curr_instr    <= live_instr;
+                  current_state <= EXEC;
                END IF;
+               
                
             WHEN EXEC =>
                current_state <= FETCH;
@@ -267,7 +276,8 @@ BEGIN
    
    
    control : PROCESS (current_state, pc, curr_instr_byte, id_opcode, id_funct, curr_memop_byte, mem_rd_ready, load_buffer, id_imm,
-                      id_rs, id_rt, id_rd, id_shamt, id_imm_sign_ext, id_imm_zero_ext, reg_read1_data, reg_read2_data, alu_result)
+                      id_rs, id_rt, id_rd, id_shamt, id_imm_sign_ext, id_imm_zero_ext, reg_read1_data, reg_read2_data, alu_result, 
+                      reg_write_addr, reg_write_data)
    BEGIN
    
       mem_we         <= '0';
@@ -286,18 +296,21 @@ BEGIN
       alu_funct      <= (others => '0');
       alu_shamt      <= (others => '0');
       
-      instr_finished <= '0';
-      
+      finished_instr <= '0';
+      finished_prog  <= '0';
       
       CASE current_state IS
          WHEN INITIAL =>
             mem_initialize <= '1';
+            FOR i IN 0 TO 2**REG_ADDR_WIDTH-1 LOOP
+               regs(i) <= (others => '0');
+            END LOOP;
       
          WHEN FETCH =>
-            mem_re         <= '1';
+            mem_re         <= NOT live_mode;
             mem_address    <= pc + curr_instr_byte;
             IF (curr_instr_byte = 0) THEN
-               instr_finished <= '1';
+               finished_instr <= '1';
             END IF;
             
          WHEN EXEC =>
@@ -316,6 +329,7 @@ BEGIN
                -- Don't write the register if this is a branch
                IF (id_funct /= FUNCT_JR) THEN
                   reg_we         <= '1';
+                  regs(to_integer(unsigned(reg_write_addr))) <= reg_write_data;
                END IF;
                
                reg_write_data <= alu_result;
@@ -332,27 +346,28 @@ BEGIN
                   alu_b       <= id_imm_sign_ext;
                END IF;
                
-               CASE id_opcode IS
-                  WHEN OP_ADDI => alu_funct <= FUNCT_ADD;
-                  WHEN OP_SLTI => alu_funct <= FUNCT_SLT;
-                  WHEN OP_ANDI => alu_funct <= FUNCT_AND;
-                  WHEN OP_ORI  => alu_funct <= FUNCT_OR;
-                  WHEN OP_XORI => alu_funct <= FUNCT_XOR;
-                  WHEN OTHERS  => alu_funct <= (others => '0');
-               END CASE;
+               IF    id_opcode = OP_ADDI  THEN alu_funct <= FUNCT_ADD;
+               ELSIF id_opcode = OP_SLTI  THEN alu_funct <= FUNCT_SLT;
+               ELSIF id_opcode = OP_ANDI  THEN alu_funct <= FUNCT_AND;
+               ELSIF id_opcode = OP_ORI   THEN alu_funct <= FUNCT_OR;
+               ELSIF id_opcode = OP_XORI  THEN alu_funct <= FUNCT_XOR;
+               END IF;
                
                reg_we         <= '1';
                reg_write_data <= alu_result;
+               regs(to_integer(unsigned(reg_write_addr))) <= reg_write_data;
                
             ELSIF (id_opcode = OP_LUI) THEN
                reg_we         <= '1';
                reg_write_addr <= id_rt;
                reg_write_data <= id_imm & OP_LUI_PAD; 
+               regs(to_integer(unsigned(reg_write_addr))) <= reg_write_data;
                
             ELSIF (id_opcode = OP_JAL) THEN
                reg_we         <= '1';
                reg_write_addr <= OP_JAL_REG;
                reg_write_data <= std_logic_vector(to_unsigned(pc, REG_DATA_WIDTH)); 
+               regs(to_integer(unsigned(reg_write_addr))) <= reg_write_data;
               
             END IF;
             
@@ -383,7 +398,7 @@ BEGIN
             reg_write_data <= load_buffer;
             
          WHEN HALT =>
-            progr_finished <= '1';
+            finished_prog <= '1';
             
          WHEN ASSRT =>
             assertion      <= '1';
@@ -392,6 +407,9 @@ BEGIN
          WHEN OTHERS =>
             
       END CASE;
+      
+      --Zero reg is always 0
+      regs(0) <= (others => '0');
       
    END PROCESS;
    
