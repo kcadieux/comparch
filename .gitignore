@@ -3,9 +3,9 @@
 *.wlf
 *.user
 transcript
-VHDL/**/db/
-VHDL/**/incremental_db/
-VHDL/**/output_files/
-VHDL/**/work/
+CPUS/**/db/
+CPUS/**/incremental_db/
+CPUS/**/output_files/
+CPUS/**/work/
 Assembler/**/bin/
 Assembler/**/obj/
