@@ -83,7 +83,7 @@ namespace Assembler
                     if (words[0].EndsWith(":"))
                     {
                         // This is a label, check if there is an instruction
-                        words = words.Skip(0).Take(words.Length - 1).ToArray();
+                        words = words.Skip(1).Take(words.Length - 1).ToArray();
                     }
                     else if (words.Count() > 1 && words[1].StartsWith(":"))
                     {
