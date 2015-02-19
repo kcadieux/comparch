@@ -49,7 +49,8 @@ namespace Assembler
             }
 
             // File option
-            if (!Tools.FileExists(args[0]))
+            string asmName = Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location), args[0]);
+            if (!Tools.FileExists(asmName))
             {
                 Console.Out.WriteLine("The specified file cannot be found in the current folder.");
                 return;
@@ -63,7 +64,7 @@ namespace Assembler
 
             string objFileName = Path.Combine(Path.GetDirectoryName(Tools.FullFilePath),
                 Path.GetFileNameWithoutExtension(Tools.FullFilePath)) + ".dat";
-            string errorLog = Assemble(objFileName);
+            string errorLog = Assemble(asmName);
 
             if (String.IsNullOrEmpty(errorLog))
             {
