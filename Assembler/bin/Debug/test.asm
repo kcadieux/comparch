@@ -32,3 +32,6 @@ sra $at $t5, 31
 jr $ra
 j LABEL1
 jal LABEL2
+halt
+asrt ,$0, $1
+asrti $0 -1

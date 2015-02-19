@@ -85,7 +85,7 @@ namespace Assembler
                         // This is a label, check if there is an instruction
                         words = words.Skip(0).Take(words.Length - 1).ToArray();
                     }
-                    else if (words[1].StartsWith(":"))
+                    else if (words.Count() > 1 && words[1].StartsWith(":"))
                     {
                         words = words.Skip(1).Take(words.Length - 2).ToArray();
                     }
@@ -113,7 +113,7 @@ namespace Assembler
                                 break;
                             case Operation.Addi:
                                 writer.Write("001000");
-                                error = !ImmediateEncodingTwoRegisters(writer, ref log, words);
+                                error = !ImmediateEncodingTwoRegisters(writer, ref log, words, 16);
                                 break;
                             case Operation.Mult:
                                 writer.Write("000000");
@@ -132,7 +132,7 @@ namespace Assembler
                                 break;
                             case Operation.Slti:
                                 writer.Write("001010");
-                                error = !ImmediateEncodingTwoRegisters(writer, ref log, words);
+                                error = !ImmediateEncodingTwoRegisters(writer, ref log, words, 16);
                                 break;
                             case Operation.And:
                                 writer.Write("000000");
@@ -156,15 +156,15 @@ namespace Assembler
                                 break;
                             case Operation.Andi:
                                 writer.Write("001100");
-                                error = !ImmediateEncodingTwoRegisters(writer, ref log, words);
+                                error = !ImmediateEncodingTwoRegisters(writer, ref log, words, 16);
                                 break;
                             case Operation.Ori:
                                 writer.Write("001101");
-                                error = !ImmediateEncodingTwoRegisters(writer, ref log, words);
+                                error = !ImmediateEncodingTwoRegisters(writer, ref log, words, 16);
                                 break;
                             case Operation.Xori:
                                 writer.Write("001110");
-                                error = !ImmediateEncodingTwoRegisters(writer, ref log, words);
+                                error = !ImmediateEncodingTwoRegisters(writer, ref log, words, 16);
                                 break;
                             case Operation.Mfhi:
                                 writer.Write("0000000000000000");
@@ -238,6 +238,19 @@ namespace Assembler
                             case Operation.Jal:
                                 writer.Write("000011");
                                 error = !LabelEncoding26(writer, ref log, words, labelDictionary);
+                                break;
+                            case Operation.Asrt:
+                                writer.Write("001110");
+                                error = !EncodingTwoRegisters(writer, ref log, words);
+                                writer.Write("0000000000000000");
+                                break;
+                            case Operation.Asrti:
+                                writer.Write("001111");
+                                writer.Write("00000"); // Ignored by processor
+                                error = !ImmediateEncodingOneRegister(writer, ref log, words);
+                                break;
+                            case Operation.Halt:
+                                writer.Write("01000000000000000000000000000000");
                                 break;
                             default:
                                 break;
@@ -492,7 +505,7 @@ namespace Assembler
             return true;
         }
 
-        public static bool ImmediateEncodingTwoRegisters(ByteWriter writer, ref string log, string[] words)
+        public static bool ImmediateEncodingTwoRegisters(ByteWriter writer, ref string log, string[] words, int immediateBits)
         {
             if (words.Count() < 4)
             {
@@ -530,7 +543,7 @@ namespace Assembler
             short immediate = 0;
             if (Int16.TryParse(words[3], out immediate))
             {
-                s = CheckAndPadForXChar(Convert.ToString(immediate, 2), 16);
+                s = CheckAndPadForXChar(Convert.ToString(immediate, 2), immediateBits);
                 writer.Write(s);
             }
             else

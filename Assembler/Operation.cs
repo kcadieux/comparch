@@ -37,6 +37,9 @@ namespace Assembler
         J,
         Jr,
         Jal,
-        Slr
+        Slr,
+        Asrt,
+        Asrti,
+        Halt
     }
 }

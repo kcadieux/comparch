@@ -187,6 +187,12 @@ namespace Assembler
                     return Operation.Jr;
                 case "jal":
                     return Operation.Jal;
+                case "asrt":
+                    return Operation.Asrt;
+                case "asrti":
+                    return Operation.Asrti;
+                case "halt":
+                    return Operation.Halt;
                 default:
                     return Operation.None;
             }
