@@ -3,7 +3,12 @@
 source "$topLevelDir/scripts/compile.tcl"
 
 ;#Assemble the test file
-exec "$topLevelDir/bin/Assembler.exe" "$topLevelDir/tests/$testName.asm"
+set assemblerResult [exec "$topLevelDir/bin/Assembler.exe" "$topLevelDir/tests/$testName.asm"]
+
+if {[string first "error" $assemblerResult] != -1} {
+	puts "FAILURE: $assemblerResult"
+	quit
+}
 
 ;#Load the test into the CPU
 vsim -quiet unpipelined_cpu -gFile_Address_Read="$topLevelDir/tests/$testName.dat"
@@ -21,9 +26,9 @@ if {[exa /unpipelined_cpu/finished_prog] == 1} {
 	puts "SUCCESS"
 } elseif {[exa /unpipelined_cpu/assertion] == 1} {
 	set failureLocation [expr [exa -radix unsigned /unpipelined_cpu/assertion_pc] / 4 + 1];
-	puts "FAILURE (assertion at instruction $failureLocation)"
+	puts "FAILURE: assertion at instruction $failureLocation"
 } else {
-	puts "FAILURE (program did not finish before timeout)"
+	puts "FAILURE: program did not finish before timeout"
 }
 
 nowhen test_prog

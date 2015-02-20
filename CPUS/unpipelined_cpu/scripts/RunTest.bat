@@ -2,7 +2,7 @@
 setlocal
 
 IF "%1%"=="" (
-	ECHO No test file was specified
+	ECHO FAILURE: No test file was specified
 	GOTO EXIT
 )
 
@@ -17,7 +17,7 @@ SET TEST_NAME=%1%
 SET TEST_FILE_PATH=%TOP_LEVEL_DIR%/tests/%TEST_NAME%.asm
 
 IF NOT EXIST "%TEST_FILE_PATH%" (
-    ECHO The test file provided does not exist in the tests folder.
+    ECHO FAILURE: The test file provided does not exist in the tests folder.
 	GOTO EXIT
 )
 
