@@ -17,7 +17,6 @@ use ieee.numeric_std.all; -- allows use of the unsigned type
 use work.architecture_constants.all;
 use work.op_codes.all;
 use work.alu_codes.all;
-use work.debug_types.all;
 
 ENTITY unpipelined_cpu IS
    
@@ -25,8 +24,8 @@ ENTITY unpipelined_cpu IS
       File_Address_Read    : STRING    := "Init.dat";
       File_Address_Write   : STRING    := "MemCon.dat";
       Mem_Size             : INTEGER   := 256;
-      Read_Delay           : INTEGER   := 0; 
-      Write_Delay          : INTEGER   := 0
+      Read_Delay           : INTEGER   := 1; 
+      Write_Delay          : INTEGER   := 1
    );
    PORT (
       clk:      	      IN    STD_LOGIC;
@@ -41,9 +40,7 @@ ENTITY unpipelined_cpu IS
       
       live_mode:        IN    STD_LOGIC := '0';
       live_instr:       IN    STD_LOGIC_VECTOR(INSTR_WIDTH-1 DOWNTO 0) := (others => '0');
-      mem_dump:         IN    STD_LOGIC := '0';
-      
-      regs:             OUT   REGISTER_ARRAY_DBG
+      mem_dump:         IN    STD_LOGIC := '0'
    );
    
 END unpipelined_cpu;
@@ -234,7 +231,7 @@ BEGIN
                   current_state  <= HALT;
                
                ELSIF ((id_opcode = OP_ASRT  AND reg_read1_data /= reg_read2_data) OR
-                      (id_opcode = OP_ASRTI AND reg_read1_data /= id_imm_sign_ext)) THEN
+                      (id_opcode = OP_ASRTI AND reg_read2_data /= id_imm_sign_ext)) THEN
                   current_state  <= ASSRT;
                
                END IF;
@@ -302,9 +299,6 @@ BEGIN
       CASE current_state IS
          WHEN INITIAL =>
             mem_initialize <= '1';
-            FOR i IN 0 TO 2**REG_ADDR_WIDTH-1 LOOP
-               regs(i) <= (others => '0');
-            END LOOP;
       
          WHEN FETCH =>
             mem_re         <= NOT live_mode;
@@ -329,7 +323,6 @@ BEGIN
                -- Don't write the register if this is a branch
                IF (id_funct /= FUNCT_JR) THEN
                   reg_we         <= '1';
-                  regs(to_integer(unsigned(reg_write_addr))) <= reg_write_data;
                END IF;
                
                reg_write_data <= alu_result;
@@ -355,19 +348,16 @@ BEGIN
                
                reg_we         <= '1';
                reg_write_data <= alu_result;
-               regs(to_integer(unsigned(reg_write_addr))) <= reg_write_data;
                
             ELSIF (id_opcode = OP_LUI) THEN
                reg_we         <= '1';
                reg_write_addr <= id_rt;
                reg_write_data <= id_imm & OP_LUI_PAD; 
-               regs(to_integer(unsigned(reg_write_addr))) <= reg_write_data;
                
             ELSIF (id_opcode = OP_JAL) THEN
                reg_we         <= '1';
                reg_write_addr <= OP_JAL_REG;
                reg_write_data <= std_logic_vector(to_unsigned(pc, REG_DATA_WIDTH)); 
-               regs(to_integer(unsigned(reg_write_addr))) <= reg_write_data;
               
             END IF;
             
@@ -407,9 +397,6 @@ BEGIN
          WHEN OTHERS =>
             
       END CASE;
-      
-      --Zero reg is always 0
-      regs(0) <= (others => '0');
       
    END PROCESS;
    

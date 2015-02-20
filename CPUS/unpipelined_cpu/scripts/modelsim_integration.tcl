@@ -41,10 +41,10 @@ proc RebootCPU {} {
 
 proc InitCPU {} {
 	;# Generate a 1ns clock
-	force -deposit clk 0 0 ns, 1 0.5 ns -repeat 1 ns
+	force -deposit /unpipelined_cpu/clk 0 0 ns, 1 0.5 ns -repeat 1 ns
 	
 	;# Activate live mode
-	force -deposit live_mode 1
+	force -deposit /unpipelined_cpu/live_mode 1
 	
 	run 1 ns
 }
@@ -59,20 +59,20 @@ proc AddWaves {} {
 	add wave -position end  sim:/unpipelined_cpu/mem_address
 	add wave -position end  sim:/unpipelined_cpu/live_instr
 	add wave -position end  sim:/unpipelined_cpu/finished_instr
-	add wave -position end  sim:/unpipelined_cpu/regs
+	add wave -position end  sim:/unpipelined_cpu/reg_file/regs
 	;#add wave -position end  -radix unsigned sim:/router_port/get_data
 }
 
-proc asmToBin {args} {
+proc AsmToBin {args} {
 	global topLevelDir
 	set instr [join $args " "]
-	puts [exec $topLevelDir/bin/Assembler.exe -i "$instr"];
+	puts [exec "$topLevelDir/bin/Assembler.exe" -i "$instr"];
 }
 
 proc asm {args} {
 	global topLevelDir
 	set instr [join $args " "]
-	force -deposit live_instr [exec $topLevelDir/bin/Assembler.exe -i "$instr"]
+	force -deposit /unpipelined_cpu/live_instr [exec "$topLevelDir/bin/Assembler.exe" -i "$instr"]
 	run 1 ns
 	
 	set clockCycles 0
@@ -87,14 +87,14 @@ proc asm {args} {
 	}
 }
 
-proc asmSlow {args} {
+proc AsmBegin {args} {
 	global topLevelDir
 	set instr [join $args " "]
-	force -deposit live_instr [exec $topLevelDir/bin/Assembler.exe -i "$instr"]
+	force -deposit live_instr [exec "$topLevelDir/bin/Assembler.exe" -i "$instr"]
 }
 
-proc reg {args} {
-	set regNumber [string replace [lindex $args 0] 0 0 ""]
+proc reg {regVar args} {
+	set regNumber [string replace $regVar 0 0 ""]
 	
 	if {$regNumber == ""} {
 		puts "Invalid register, make sure to include the dollar sign (\$)"
@@ -103,19 +103,30 @@ proc reg {args} {
 	
 	set radix "signed"
 	
-	if {[llength $args] > 1} {
-		set radix [lindex $args 1]
+	if {[lindex $args 0] != ""} {
+		set radix [lindex $args 0]
 	}
 	
-	set regValue [exa -radix $radix /unpipelined_cpu/regs($regNumber)]
-	puts "Value: $regValue"
+	set regValue 0
+	if {$regNumber > 0} {
+		set regValue [exa -radix $radix /unpipelined_cpu/reg_file/regs($regNumber)]
+	}
+	
+	puts "\$$regNumber:\t$regValue"
+}
+
+proc DumpRegs {args} {
+	for {set i 0} {$i <= 31} {incr i} {
+		reg "\$$i" $args
+	}
 }
 
 ;#Compile all components
-source $topLevelDir/scripts/compile.tcl
+source "$topLevelDir/scripts/compile.tcl"
 
 ;#Start simulation
 vsim -quiet unpipelined_cpu
+
 
 InitCPU
 AddWaves

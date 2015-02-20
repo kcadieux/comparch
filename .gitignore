@@ -2,10 +2,13 @@
 *.bak
 *.wlf
 *.user
+*.log
+wlf*
 transcript
 CPUS/**/db/
 CPUS/**/incremental_db/
 CPUS/**/output_files/
 CPUS/**/work/
+CPUS/**/tests/*.dat
 Assembler/**/bin/
 Assembler/**/obj/
