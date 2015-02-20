@@ -1,5 +1,4 @@
-addi $1 $0 99
-#addi $2 $0 9
+addi $1 $0 666
 lw $3 0($1)
-asrti $3 0
+asrti $3 666
 halt

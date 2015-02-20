@@ -112,7 +112,7 @@ namespace Assembler
             foreach (var line in lines)
             {
                 // Comment line
-                if (line[0] == '#')
+                if (String.IsNullOrEmpty(line) || line[0] == '#')
                 {
                     continue;
                 }
@@ -325,7 +325,7 @@ namespace Assembler
             foreach (var line in lines)
             {
                 // Comment line
-                if (line[0] == '#')
+                if (String.IsNullOrEmpty(line) || line[0] == '#')
                 {
                     continue;
                 }
