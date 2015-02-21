@@ -47,6 +47,24 @@ namespace MIKA
             InitializeComponent();
         }
 
+        public string RunAllText
+        {
+            get { return "Run All " + Tests.Count + " Tests"; }
+        }
+
+        public ICommand RunTest
+        {
+            get { return new RelayCommand(param => RunAllTests(), param => true); }
+        }
+
         public List<Test> Tests { get; private set; }
+
+        private void RunAllTests()
+        {
+            foreach (var test in Tests)
+            {
+                test.StartWorker();
+            }
+        }
     }
 }

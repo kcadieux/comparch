@@ -5,8 +5,9 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="d"
         Title="MainWindow" Height="600" Width="800" Icon="mika.ico">
     <StackPanel>
-        <Image Source="title.png" />
-        <ScrollViewer Height="550" VerticalScrollBarVisibility="Auto">
+        <Image Height="94" Source="title.png" />
+        <Button Height="22" Width="200" Content="{Binding Path=RunAllText}" Command="{Binding Path=RunTest}"/>
+        <ScrollViewer Height="426" VerticalScrollBarVisibility="Auto">
             <Grid>
                 <ItemsControl ItemsSource="{Binding Path=Tests}">
                     <ItemsControl.ItemsPanel>
@@ -17,9 +18,13 @@
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                <Button Width="200" Content="{Binding Path=Name}" Command="{Binding Path=RunTest}"/>
+                                <Button Width="200" VerticalAlignment="Center" Content="{Binding Path=Name}" Command="{Binding Path=RunTest}"/>
                                 <Image Source="{Binding Path=ImageSource}"/>
-                                <TextBlock Text="{Binding Path=Status}" Foreground="{Binding Path=TextColor}" FontWeight="UltraBold" FontSize="32" VerticalAlignment="Center"/>
+                                <TextBlock Text="{Binding Path=Status}" 
+                                           Foreground="{Binding Path=TextColor}" 
+                                           FontWeight="UltraBold" 
+                                           FontSize="26" 
+                                           VerticalAlignment="Center"/>
                             </StackPanel>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>

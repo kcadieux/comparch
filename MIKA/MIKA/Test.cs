@@ -24,20 +24,17 @@ namespace MIKA
         {
             Name = name.ToUpper();
             State = State.Unknown;
-
+            Sync = false;
             worker = new BackgroundWorker();
             worker.DoWork += Work;
             //worker.RunWorkerCompleted += new RunWorkerCompletedEventHandler(worker_RunWorkerCompleted);
         }
 
-        void Work(object sender, DoWorkEventArgs e)
-        {
-            runTest();
-        }
-
         public string Name { get; private set; }
 
         public State State { get; private set; }
+
+        public bool Sync { get; set; }
 
         public string ImageSource
         {
@@ -95,9 +92,21 @@ namespace MIKA
             get { return new RelayCommand(param => StartWorker(), param => true); }
         }
 
-        private void StartWorker()
+        public void Work(object sender, DoWorkEventArgs e)
         {
-            worker.RunWorkerAsync();
+            runTest();
+        }
+
+        public void StartWorker()
+        {
+            if (Sync)
+            {
+                runTest();
+            }
+            else
+            {
+                worker.RunWorkerAsync();
+            }
         }
 
         private void runTest()
