@@ -5,12 +5,17 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:forms="clr-namespace:System.Windows.Forms;assembly=System.Windows.Forms"
         mc:Ignorable="d"
-        Title="MainWindow" Height="600" Width="800" Icon="mika.ico">
+        Title="MIKA Test Suite" Height="600" Width="800" Icon="mika.ico">
     <StackPanel>
         <Image Height="94" Source="title.png" />
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
             <Button Height="22" Width="200" Content="{Binding Path=RunAllText}" Command="{Binding Path=RunAllTests}"/>
             <Button Name="SelectedButton" Height="22" Width="200" Content="{Binding Path=RunSelectedText, UpdateSourceTrigger=Explicit}" Command="{Binding Path=RunSelectedTests}"/>
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="10" >
+                <CheckBox IsChecked="{Binding Path=Sync, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                <TextBlock> Synchronized </TextBlock>
+            </StackPanel>
+            <ProgressBar Name="ProgressBar" Height="10" Width="100"/>
         </StackPanel>
         <DataGrid ItemsSource="{Binding Tests}"
                   RowDetailsVisibilityMode="Collapsed"
@@ -26,7 +31,7 @@
                 <DataGridTemplateColumn Width="SizeToCells">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
-                            <CheckBox IsChecked="{Binding Path=Selected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                            <CheckBox IsChecked="{Binding Path=Selected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center"/>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>

@@ -2,6 +2,7 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
+using System.Threading;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -27,7 +28,6 @@ namespace MIKA
             Code = code;
             Name = name.ToUpper();
             State = State.Unknown;
-            Sync = false;
             selected = false;
             worker = new BackgroundWorker();
             worker.DoWork += Work;
@@ -54,9 +54,7 @@ namespace MIKA
                 mainWindow.RefreshSelectedText();
             }
         }
-
-        public bool Sync { get; set; }
-
+        
         public string ImageSource
         {
             get
@@ -120,17 +118,10 @@ namespace MIKA
 
         public void StartWorker()
         {
-            if (Sync)
-            {
-                runTest();
-            }
-            else
-            {
-                worker.RunWorkerAsync();
-            }
+            worker.RunWorkerAsync();
         }
 
-        private void runTest()
+        public void runTest()
         {
             //var processInfo = new ProcessStartInfo("cmd.exe", "/c" + "\"CPUS\\unpipelined_cpu\\scripts\\RunTest.bat " + Name.ToLower() + "\"");
 
@@ -181,7 +172,9 @@ namespace MIKA
 
             OnChanged("ImageSource");
             OnChanged("TextColor");
-            OnChanged("Status"); 
+            OnChanged("Status");
+
+            mainWindow.TestDone();
         }
 
 
