@@ -111,22 +111,44 @@ namespace MIKA
 
         private void runTest()
         {
-            var processInfo = new ProcessStartInfo("cmd.exe", "/c" + "\"CPUS\\unpipelined_cpu\\scripts\\RunTest.bat " + Name.ToLower() + "\"");
+            //var processInfo = new ProcessStartInfo("cmd.exe", "/c" + "\"CPUS\\unpipelined_cpu\\scripts\\RunTest.bat " + Name.ToLower() + "\"");
 
-            processInfo.CreateNoWindow = true;
+            //processInfo.CreateNoWindow = true;
 
-            processInfo.UseShellExecute = false;
+            //processInfo.UseShellExecute = false;
 
-            processInfo.RedirectStandardError = true;
-            processInfo.RedirectStandardOutput = true;
+            //processInfo.RedirectStandardError = false;
+            //processInfo.RedirectStandardOutput = true;
 
-            var process = Process.Start(processInfo);
+            //var process = Process.Start(processInfo);
 
-            process.Start();
+            ProcessStartInfo startInfo = new ProcessStartInfo();
+            startInfo.FileName = "CPUS\\unpipelined_cpu\\scripts\\RunTest.bat";
+            startInfo.Arguments = Name.ToLower();
+            startInfo.RedirectStandardOutput = true;
+            startInfo.UseShellExecute = false;
+            startInfo.CreateNoWindow = true;
+            startInfo.WindowStyle = ProcessWindowStyle.Hidden;
+            string output = String.Empty;
+            //var process = Process.Start(startInfo);
+            try
+            {
+                using (Process exeProcess = Process.Start(startInfo))
+                {
+                    exeProcess.WaitForExit();
+                    output = exeProcess.StandardOutput.ReadToEnd();
+                }
+            }
+            catch (Exception)
+            {
+                
+                throw;
+            }
+            
 
-            process.WaitForExit();
+            //process.WaitForExit();
 
-            string output = process.StandardOutput.ReadToEnd();
+            
             if (output.Contains("SUCCESS"))
             {
                 State = State.Pass;
