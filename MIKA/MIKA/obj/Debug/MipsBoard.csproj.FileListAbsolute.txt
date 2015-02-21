@@ -1,0 +1,26 @@
+c:\users\maxime\documents\visual studio 2013\Projects\MipsBoard\MipsBoard\bin\Debug\MipsBoard.exe
+c:\users\maxime\documents\visual studio 2013\Projects\MipsBoard\MipsBoard\bin\Debug\MipsBoard.pdb
+c:\users\maxime\documents\visual studio 2013\Projects\MipsBoard\MipsBoard\obj\Debug\MipsBoard.csprojResolveAssemblyReference.cache
+c:\users\maxime\documents\visual studio 2013\Projects\MipsBoard\MipsBoard\obj\Debug\MainWindow.baml
+c:\users\maxime\documents\visual studio 2013\Projects\MipsBoard\MipsBoard\obj\Debug\MainWindow.g.cs
+c:\users\maxime\documents\visual studio 2013\Projects\MipsBoard\MipsBoard\obj\Debug\App.g.cs
+c:\users\maxime\documents\visual studio 2013\Projects\MipsBoard\MipsBoard\obj\Debug\MipsBoard_MarkupCompile.cache
+c:\users\maxime\documents\visual studio 2013\Projects\MipsBoard\MipsBoard\obj\Debug\MipsBoard.g.resources
+c:\users\maxime\documents\visual studio 2013\Projects\MipsBoard\MipsBoard\obj\Debug\MipsBoard.Properties.Resources.resources
+c:\users\maxime\documents\visual studio 2013\Projects\MipsBoard\MipsBoard\obj\Debug\MipsBoard.csproj.GenerateResource.Cache
+c:\users\maxime\documents\visual studio 2013\Projects\MipsBoard\MipsBoard\obj\Debug\MipsBoard.exe
+c:\users\maxime\documents\visual studio 2013\Projects\MipsBoard\MipsBoard\obj\Debug\MipsBoard.pdb
+C:\Users\Maxime\comparch\MipsBoard\MipsBoard\obj\Debug\MipsBoard.exe
+C:\Users\Maxime\comparch\MipsBoard\MipsBoard\obj\Debug\MipsBoard.pdb
+C:\Users\Maxime\comparch\MipsBoard\MipsBoard\obj\Debug\MipsBoard.csprojResolveAssemblyReference.cache
+C:\Users\Maxime\comparch\MipsBoard\MipsBoard\obj\Debug\MainWindow.baml
+C:\Users\Maxime\comparch\MipsBoard\MipsBoard\obj\Debug\MainWindow.g.cs
+C:\Users\Maxime\comparch\MipsBoard\MipsBoard\obj\Debug\App.g.cs
+C:\Users\Maxime\comparch\MipsBoard\MipsBoard\obj\Debug\MipsBoard_MarkupCompile.cache
+C:\Users\Maxime\comparch\MipsBoard\MipsBoard\obj\Debug\MipsBoard.g.resources
+C:\Users\Maxime\comparch\MipsBoard\MipsBoard\obj\Debug\MipsBoard.Properties.Resources.resources
+C:\Users\Maxime\comparch\MipsBoard\MipsBoard\obj\Debug\MipsBoard.csproj.GenerateResource.Cache
+C:\Users\Maxime\comparch\MipsBoard\MipsBoard\obj\Debug\App.baml
+C:\Users\MipsBoard.exe
+C:\Users\Maxime\comparch\MipsBoard.exe
+C:\Users\Maxime\comparch\MipsBoard.pdb

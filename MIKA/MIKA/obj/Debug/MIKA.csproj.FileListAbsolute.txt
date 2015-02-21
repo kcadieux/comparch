@@ -1,0 +1,13 @@
+C:\Users\Maxime\comparch\MIKA.exe
+C:\Users\Maxime\comparch\MIKA.pdb
+C:\Users\Maxime\comparch\MIKA\MIKA\obj\Debug\MIKA.exe
+C:\Users\Maxime\comparch\MIKA\MIKA\obj\Debug\MIKA.pdb
+C:\Users\Maxime\comparch\MIKA\MIKA\obj\Debug\MIKA.csprojResolveAssemblyReference.cache
+C:\Users\Maxime\comparch\MIKA\MIKA\obj\Debug\MainWindow.baml
+C:\Users\Maxime\comparch\MIKA\MIKA\obj\Debug\App.baml
+C:\Users\Maxime\comparch\MIKA\MIKA\obj\Debug\MainWindow.g.cs
+C:\Users\Maxime\comparch\MIKA\MIKA\obj\Debug\App.g.cs
+C:\Users\Maxime\comparch\MIKA\MIKA\obj\Debug\MIKA_MarkupCompile.cache
+C:\Users\Maxime\comparch\MIKA\MIKA\obj\Debug\MIKA.g.resources
+C:\Users\Maxime\comparch\MIKA\MIKA\obj\Debug\MIKA.Properties.Resources.resources
+C:\Users\Maxime\comparch\MIKA\MIKA\obj\Debug\MIKA.csproj.GenerateResource.Cache
