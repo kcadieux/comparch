@@ -31,7 +31,7 @@ namespace Assembler
 
                     using (var reader = new StringReader(args[1]))
                     {
-                        string error = Assemble(reader, writer);
+                        string error = Assemble(reader, writer, false);
 
                         if (String.IsNullOrEmpty(error))
                         {
@@ -68,7 +68,7 @@ namespace Assembler
                 using (var fileReader = new StreamReader(new FileStream(asmName, FileMode.Open)))
                 using (var byteWriter = new ByteWriter(objFileName))
                 {
-                    string errorLog = Assemble(fileReader, writer);
+                    string errorLog = Assemble(fileReader, writer, true);
 
                     if (String.IsNullOrEmpty(errorLog))
                     {
@@ -76,19 +76,17 @@ namespace Assembler
                         Console.Out.WriteLine("The binary file has been successfuly generated");
                         return;
                     }
-                    else
-                    {
+
                         Console.Out.WriteLine("There was an error in the assembly file :");
                         Console.Out.WriteLine(errorLog);
                         return;
-                    }
                 }
             }
 
             
         }
 
-        public static string Assemble(TextReader source, StringWriter writer)
+        public static string Assemble(TextReader source, StringWriter writer, bool labelPass)
         {
             string log = String.Empty;
             int instruction = 0;
@@ -105,16 +103,26 @@ namespace Assembler
             //string objFileName = Path.Combine(Path.GetDirectoryName(filePath),
             //    Path.GetFileNameWithoutExtension(filePath)) + ".dat";
 
-            FirstPassThroughAssembly(lines, labelDictionary);
+            if (labelPass)
+            {
+                FirstPassThroughAssembly(lines, labelDictionary);  
+            }
             
             //using (var writer = new ByteWriter(objFileName))
             //using (StreamWriter writer = new StreamWriter(File.Open(objFileName, FileMode.Create)))
             foreach (var line in lines)
             {
+                bool error = false;
+
                 // Comment line
                 if (String.IsNullOrEmpty(line) || line[0] == '#')
                 {
-                    continue;
+                    if (labelPass)
+                    {
+                        continue;
+                    }
+
+                    return "error in instruction";
                 }
                     
                 // Tokenize baby
@@ -122,33 +130,40 @@ namespace Assembler
 
                 if (words.Length == 0)
                 {
-                    continue;
+                    if (labelPass)
+                    {
+                        continue;
+                    }
+
+                    return "error in instruction";
                 }
 
                 if (words[0].StartsWith("#"))
                 {
-                    continue;
+                    if (labelPass)
+                    {
+                        continue;
+                    }
+
+                    return "error in instruction";
                 }
 
-                if (words[0].EndsWith(":"))
+                if (labelPass)
                 {
-                    // This is a label, check if there is an instruction
-                    words = words.Skip(1).Take(words.Length - 1).ToArray();
-                }
-                else if (words.Count() > 1 && words[1].StartsWith(":"))
-                {
-                    words = words.Skip(1).Take(words.Length - 2).ToArray();
-                }
-
-                if (words.Length == 0)
-                {
-                    continue;
+                    if (words[0].EndsWith(":"))
+                    {
+                        // This is a label, check if there is an instruction
+                        words = words.Skip(1).Take(words.Length - 1).ToArray();
+                    }
+                    else if (words.Count() > 1 && words[1].StartsWith(":"))
+                    {
+                        words = words.Skip(1).Take(words.Length - 2).ToArray();
+                    }
                 }
 
                 Operation op = Tools.StringToOperation(words[0]);
                 if (op != Operation.None)
                 {
-                    bool error = false;
                     switch (op)
                     {
                         case Operation.Add:
@@ -313,6 +328,10 @@ namespace Assembler
 
                     instruction++;
                 }
+                else if (!labelPass)
+                {
+                    return "error in instruction";
+                }
             }
 
             return log;
@@ -346,7 +365,7 @@ namespace Assembler
                 if (op == Operation.None)
                 {
                     // Label
-                    if (words[0].EndsWith(":") || words[1].StartsWith(":"))
+                    if (words[0].EndsWith(":") || (words.Count() >= 2 && words[1].StartsWith(":")))
                     {
                         string label = words[0].Split(':')[0];
                         labelDictionary.Add(label, instruction);
