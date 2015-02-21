@@ -8,7 +8,7 @@ IF "%TEST_NAME%"=="" (
 )
 
 pushd "%~dp0\..\quartus"
-vsim.exe -c -do "set topLevelDir \"[pwd]/..\"; source ../scripts/livecpulib.tcl; RunTest %TEST_NAME%; quit"
+vsim.exe -c -do "set topLevelDir \"[pwd]/..\"; source ../scripts/livecpulib.tcl; CompileCPU; RunTest %TEST_NAME%; quit"
 popd
 
 

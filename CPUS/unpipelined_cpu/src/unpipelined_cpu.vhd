@@ -235,6 +235,7 @@ BEGIN
                       (id_opcode = OP_ASRTI AND reg_read2_data /= id_imm_sign_ext)) THEN
                   current_state  <= ASSRT;
                
+               
                END IF;
                
             WHEN MEM =>

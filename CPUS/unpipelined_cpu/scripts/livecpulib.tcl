@@ -39,21 +39,36 @@ set TEST_FOLDER		"$topLevelDir/tests"
 set ASSEMBLER_EXE 	"$topLevelDir/bin/Assembler.exe"
 set TARGET_CPU		"unpipelined_cpu"
 
-proc CompileCPU {} {
+proc CompileComponent {componentName} {
 	global SRC_FOLDER
-
-	if {[expr {![file exists work]}]} {
+	
+	if {[expr ![file exists work]]} {
 		vlib work
 	}
+	
+	set componentIsCompiled [file exists work/$componentName]
+	set srcTime 			[file mtime "$SRC_FOLDER/$componentName.vhd"]
+	
+	set compiledTime		0
+	if {$componentIsCompiled} {
+		set compiledTime 	[file mtime work/$componentName]
+	}
+	
+	if {[expr !$componentIsCompiled] || $srcTime >= $compiledTime} {
+		puts "Source version is more recent than compiled version. Compiling $componentName..."
+		vcom -quiet "$SRC_FOLDER/$componentName.vhd"
+	}
+}
 
-	vcom -quiet "$SRC_FOLDER/architecture_constants.vhd"
-	vcom -quiet "$SRC_FOLDER/op_codes.vhd"
-	vcom -quiet "$SRC_FOLDER/alu_codes.vhd"
-	vcom -quiet "$SRC_FOLDER/alu.vhd"
-	vcom -quiet "$SRC_FOLDER/Main_Memory.vhd"
-	vcom -quiet "$SRC_FOLDER/register_file.vhd"
-	vcom -quiet "$SRC_FOLDER/instr_decoder.vhd"
-	vcom -quiet "$SRC_FOLDER/unpipelined_cpu.vhd"
+proc CompileCPU {} {
+	CompileComponent architecture_constants
+	CompileComponent op_codes
+	CompileComponent alu_codes
+	CompileComponent alu
+	CompileComponent Main_Memory
+	CompileComponent register_file
+	CompileComponent instr_decoder
+	CompileComponent unpipelined_cpu
 }
 
 proc GenerateCPUClock {} {
