@@ -21,6 +21,7 @@ use work.architecture_constants.all;
 ENTITY alu IS
    
    PORT (
+      clk:        IN STD_LOGIC;
       a:          IN STD_LOGIC_VECTOR(REG_DATA_WIDTH-1 DOWNTO 0)    := (others => '0');
       b:          IN STD_LOGIC_VECTOR(REG_DATA_WIDTH-1 DOWNTO 0)    := (others => '0');
       funct:      IN STD_LOGIC_VECTOR(ALU_FUNCT_WIDTH-1 DOWNTO 0)   := (others => '0');
@@ -71,16 +72,19 @@ BEGIN
       reg_lo                                 WHEN funct = FUNCT_MFLO ELSE
       (others => '0');
       
-   mult_state : PROCESS (funct)
+   mult_state : PROCESS (clk, funct, result_mult)
    BEGIN
-      IF (funct = FUNCT_MULT) THEN
-         reg_hi <= result_mult(REG_DATA_WIDTH * 2 - 1 DOWNTO REG_DATA_WIDTH);
-         reg_lo <= result_mult(REG_DATA_WIDTH-1 DOWNTO 0);
-         
-      ELSIF (funct = FUNCT_DIV) THEN
-         reg_hi <= a_s MOD b_s;
-         reg_lo <= a_s / b_s;
-         
+      IF (clk'event and clk = '1') THEN
+         IF (funct = FUNCT_MULT) THEN
+            report "In mult";
+            reg_hi <= result_mult(REG_DATA_WIDTH * 2 - 1 DOWNTO REG_DATA_WIDTH);
+            reg_lo <= result_mult(REG_DATA_WIDTH-1 DOWNTO 0);
+            
+         ELSIF (funct = FUNCT_DIV) THEN
+            reg_hi <= a_s MOD b_s;
+            reg_lo <= a_s / b_s;
+            
+         END IF;
       END IF;
    END PROCESS;
    

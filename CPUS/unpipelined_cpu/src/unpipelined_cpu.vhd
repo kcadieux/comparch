@@ -151,6 +151,7 @@ BEGIN
       
    alu : ENTITY work.alu
       PORT MAP (
+         clk         => clk,
          a           => alu_a,
          b           => alu_b,
          funct       => alu_funct,
@@ -383,7 +384,7 @@ BEGIN
                mem_re   <= '1';
             ELSE 
                mem_we   <= '1';
-               mem_data <= reg_read2_data(7 DOWNTO 0);
+               mem_data <= reg_read2_data(8*curr_memop_byte-1 DOWNTO 8*(curr_memop_byte-1));
             END IF;
             
             IF (id_opcode = OP_LB OR id_opcode = OP_SB) THEN

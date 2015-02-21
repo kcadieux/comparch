@@ -39,6 +39,10 @@ set TEST_FOLDER		"$topLevelDir/tests"
 set ASSEMBLER_EXE 	"$topLevelDir/bin/Assembler.exe"
 set TARGET_CPU		"unpipelined_cpu"
 
+proc AddWaves {} {
+
+}
+
 proc CompileComponent {componentName} {
 	global SRC_FOLDER
 	
@@ -95,6 +99,7 @@ proc InitCPU {args} {
 proc RebootCPU {} {
 	restart -force
 	GenerateCPUClock
+	run 1 ns
 }
 
 proc AssembleInstruction {args} {
@@ -110,6 +115,13 @@ proc AssembleInstruction {args} {
 	
 	return $assemblerResult
 }
+
+proc bin {args} {
+	global ASSEMBLER_EXE
+	set instr [join $args " "]
+	puts [exec "$ASSEMBLER_EXE" -i "$instr"]
+}
+
 
 proc ExecuteInstruction {args} {
 	global ASSEMBLER_EXE
@@ -246,7 +258,6 @@ proc RunTest {testName} {
 	}
 
 	nowhen test_prog
-	
 }
 
 proc test {args} {

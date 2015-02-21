@@ -13,3 +13,5 @@ CPUS/**/work/
 CPUS/**/tests/*.dat
 Assembler/**/bin/
 Assembler/**/obj/
+MIKA/**/bin/
+MIKA/**/obj/

@@ -284,12 +284,12 @@ namespace Assembler
                         case Operation.Beq:
                             writer.Write("000100");
                             error = !EncodingTwoRegisters(writer, ref log, words);
-                            error &= !LabelEncodingRelative16(writer, ref log, words, labelDictionary, instruction);
+                            error &= !LabelEncodingRelative16(writer, ref log, words, labelDictionary, instruction + 1);
                             break;
                         case Operation.Bne:
                             writer.Write("000101");
                             error = !EncodingTwoRegisters(writer, ref log, words);
-                            error &= !LabelEncodingRelative16(writer, ref log, words, labelDictionary, instruction);
+                            error &= !LabelEncodingRelative16(writer, ref log, words, labelDictionary, instruction + 1);
                             break;
                         case Operation.J:
                             writer.Write("000010");
