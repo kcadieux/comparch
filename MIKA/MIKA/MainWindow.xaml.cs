@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Windows;
@@ -41,7 +43,7 @@ namespace MIKA
             {
                 string fileNameWithExtension = testName.Split('\\')[3];
                 string fileName = fileNameWithExtension.Substring(0, fileNameWithExtension.Length - 4);
-                Tests.Add(new Test(fileName));
+                Tests.Add(new Test(fileName, File.ReadAllText(testName), this));
             }
 
             InitializeComponent();
@@ -49,22 +51,47 @@ namespace MIKA
 
         public string RunAllText
         {
-            get { return "Run All " + Tests.Count + " Tests"; }
+            get { return "Run all " + Tests.Count + " Tests"; }
         }
 
-        public ICommand RunTest
+        public string RunSelectedText
         {
-            get { return new RelayCommand(param => RunAllTests(), param => true); }
+            get { return "Run " + Tests.Count(t => t.Selected) + " Selected Tests"; }
+        }
+
+        public ICommand RunAllTests
+        {
+            get { return new RelayCommand(param => RunAllTestsWorker(), param => true); }
+        }
+
+        public ICommand RunSelectedTests
+        {
+            get { return new RelayCommand(param => RunSelectedTestsWorker(), param => true); }
         }
 
         public List<Test> Tests { get; private set; }
 
-        private void RunAllTests()
+        public void RefreshSelectedText()
+        {
+            SelectedButton.GetBindingExpression(Button.ContentProperty).UpdateTarget();
+        }
+
+        private void RunSelectedTestsWorker()
+        {
+            foreach (var test in Tests.Where(t => t.Selected))
+            {
+                test.StartWorker();
+            }
+        }
+
+        private void RunAllTestsWorker()
         {
             foreach (var test in Tests)
             {
                 test.StartWorker();
             }
         }
+
+        public event DependencyPropertyChangedEventHandler PropertyChanged;
     }
 }

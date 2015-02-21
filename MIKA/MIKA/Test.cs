@@ -17,22 +17,43 @@ namespace MIKA
 
     public class Test : INotifyPropertyChanged
     {
+        private bool selected;
+        private MainWindow mainWindow;
         private BackgroundWorker worker;
         private static string imageDirectory = Path.Combine(Path.GetDirectoryName(AppDomain.CurrentDomain.BaseDirectory), "MIKA\\Images");
 
-        public Test(string name)
+        public Test(string name, string code, MainWindow mainWindow)
         {
+            Code = code;
             Name = name.ToUpper();
             State = State.Unknown;
             Sync = false;
+            selected = false;
             worker = new BackgroundWorker();
             worker.DoWork += Work;
+            this.mainWindow = mainWindow;
             //worker.RunWorkerCompleted += new RunWorkerCompletedEventHandler(worker_RunWorkerCompleted);
         }
+
+        public string Code { get; private set; }
 
         public string Name { get; private set; }
 
         public State State { get; private set; }
+
+        public bool Selected 
+        {
+            get
+            {
+                return selected;
+            }
+
+            set
+            {
+                selected = value;
+                mainWindow.RefreshSelectedText();
+            }
+        }
 
         public bool Sync { get; set; }
 
