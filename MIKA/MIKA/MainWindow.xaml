@@ -17,6 +17,7 @@
             </StackPanel>
             <ProgressBar Name="ProgressBar" Height="10" Width="100"/>
         </StackPanel>
+        <TextBlock HorizontalAlignment="Center">Double-Click a row for details.</TextBlock>
         <DataGrid ItemsSource="{Binding Tests}"
                   RowDetailsVisibilityMode="Collapsed"
                 AutoGenerateColumns="False"
