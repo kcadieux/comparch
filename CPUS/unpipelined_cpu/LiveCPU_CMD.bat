@@ -1,3 +1,3 @@
 pushd "%~dp0\quartus"
-start "" "vsim.exe" -c -do "set topLevelDir \"[pwd]/..\"; source ../scripts/modelsim_integration.tcl;"
+start "" "vsim.exe" -c -do "set topLevelDir \"[pwd]/..\"; source ../scripts/livecpulib.tcl; CompileCPU; InitCPU"
 popd

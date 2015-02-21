@@ -24,8 +24,8 @@ ENTITY unpipelined_cpu IS
       File_Address_Read    : STRING    := "Init.dat";
       File_Address_Write   : STRING    := "MemCon.dat";
       Mem_Size             : INTEGER   := 256;
-      Read_Delay           : INTEGER   := 1; 
-      Write_Delay          : INTEGER   := 1
+      Read_Delay           : INTEGER   := 0; 
+      Write_Delay          : INTEGER   := 0
    );
    PORT (
       clk:      	      IN    STD_LOGIC;
@@ -59,7 +59,8 @@ ARCHITECTURE rtl OF unpipelined_cpu IS
    SIGNAL load_buffer      : STD_LOGIC_VECTOR(REG_DATA_WIDTH - 1 DOWNTO 0) := (others => '0');
    
    --Main memory signals
-   SIGNAL mem_address      : NATURAL                                       := 0;  
+   SIGNAL mem_pre_address  : NATURAL                                       := 0;
+   SIGNAL mem_address      : NATURAL                                       := 0; 
    SIGNAL mem_we           : STD_LOGIC                                     := '0';
    SIGNAL mem_wr_done      : STD_LOGIC                                     := '0';
    SIGNAL mem_re           : STD_LOGIC                                     := '0';
@@ -274,13 +275,19 @@ BEGIN
    
    control : PROCESS (current_state, pc, curr_instr_byte, id_opcode, id_funct, curr_memop_byte, mem_rd_ready, load_buffer, id_imm,
                       id_rs, id_rt, id_rd, id_shamt, id_imm_sign_ext, id_imm_zero_ext, reg_read1_data, reg_read2_data, alu_result, 
-                      reg_write_addr, reg_write_data)
+                      reg_write_addr, reg_write_data, mem_pre_address)
    BEGIN
    
       mem_we         <= '0';
       mem_re         <= '0';
       mem_data       <= (others => 'Z');
       mem_initialize <= reset;
+      mem_pre_address<= 0;
+      
+      mem_address    <= mem_pre_address;
+      IF (mem_rd_ready = '1') THEN
+         mem_address <= mem_pre_address + 1;
+      END IF;
       
       reg_we         <= '0';
       reg_read1_addr <= (others => '0');
@@ -301,8 +308,10 @@ BEGIN
             mem_initialize <= '1';
       
          WHEN FETCH =>
-            mem_re         <= NOT live_mode;
-            mem_address    <= pc + curr_instr_byte;
+         
+            mem_re            <= NOT live_mode;
+            mem_pre_address   <= pc + curr_instr_byte;
+            
             IF (curr_instr_byte = 0) THEN
                finished_instr <= '1';
             END IF;
@@ -377,9 +386,9 @@ BEGIN
             END IF;
             
             IF (id_opcode = OP_LB OR id_opcode = OP_SB) THEN
-               mem_address    <= to_integer(unsigned(alu_result)) + (1 - curr_memop_byte);
+               mem_pre_address    <= to_integer(unsigned(alu_result)) + (1 - curr_memop_byte);
             ELSE
-               mem_address    <= to_integer(unsigned(alu_result)) + (4 - curr_memop_byte);
+               mem_pre_address    <= to_integer(unsigned(alu_result)) + (4 - curr_memop_byte);
             END IF;
             
          WHEN MEM_WB =>
@@ -397,6 +406,10 @@ BEGIN
          WHEN OTHERS =>
             
       END CASE;
+      
+      
+      
+      
       
    END PROCESS;
    

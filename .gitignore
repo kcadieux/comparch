@@ -4,6 +4,7 @@
 *.user
 *.log
 wlf*
+~$*
 transcript
 CPUS/**/db/
 CPUS/**/incremental_db/

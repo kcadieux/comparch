@@ -70,7 +70,7 @@ BEGIN
 			 File_Address_Write => "MemCon.dat",
 			 Mem_Size => Memory_Size,
 			 Num_Bits_in_Word => Num_Bits_in_Word,
-			 Read_Delay => 3,
+			 Read_Delay => 0,
 			 Write_Delay => 0
 			 
 		)
