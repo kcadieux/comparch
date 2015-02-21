@@ -92,6 +92,13 @@ namespace MIKA
             }
         }
 
+        private void RowDoubleClick(object sender, RoutedEventArgs e)
+        {
+            var row = (DataGridRow)sender;
+            row.DetailsVisibility = row.DetailsVisibility == Visibility.Collapsed ?
+                Visibility.Visible : Visibility.Collapsed;
+        }
+
         public event DependencyPropertyChangedEventHandler PropertyChanged;
     }
 }

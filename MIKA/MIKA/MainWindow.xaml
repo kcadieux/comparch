@@ -8,21 +8,22 @@
         Title="MainWindow" Height="600" Width="800" Icon="mika.ico">
     <StackPanel>
         <Image Height="94" Source="title.png" />
-        <StackPanel Orientation="Horizontal">
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
             <Button Height="22" Width="200" Content="{Binding Path=RunAllText}" Command="{Binding Path=RunAllTests}"/>
             <Button Name="SelectedButton" Height="22" Width="200" Content="{Binding Path=RunSelectedText, UpdateSourceTrigger=Explicit}" Command="{Binding Path=RunSelectedTests}"/>
         </StackPanel>
         <DataGrid ItemsSource="{Binding Tests}"
-                      AutoGenerateColumns="False"
-                      CanUserReorderColumns="True" 
-                      CanUserResizeColumns="True" 
-                      CanUserSortColumns="True"
-                      RowBackground="LightCyan"
-                      AlternatingRowBackground="LightBlue"
-                      VerticalScrollBarVisibility="Auto"
-                      Height="426">
+                  RowDetailsVisibilityMode="Collapsed"
+                AutoGenerateColumns="False"
+                CanUserReorderColumns="True" 
+                CanUserResizeColumns="True" 
+                CanUserSortColumns="True"
+                RowBackground="LightCyan"
+                AlternatingRowBackground="LightBlue"
+                VerticalScrollBarVisibility="Auto"
+                Height="426">
             <DataGrid.Columns>
-                <DataGridTemplateColumn Header="Selected" Width="SizeToCells">
+                <DataGridTemplateColumn Width="SizeToCells">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <CheckBox IsChecked="{Binding Path=Selected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
@@ -55,6 +56,11 @@
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
             </DataGrid.Columns>
+            <DataGrid.RowStyle>
+                <Style TargetType="{x:Type DataGridRow}">
+                    <EventSetter Event="MouseDoubleClick" Handler="RowDoubleClick"/>
+                </Style>
+            </DataGrid.RowStyle>
             <DataGrid.RowDetailsTemplate>
                 <DataTemplate>
                     <StackPanel Background="{Binding TextColor}">
