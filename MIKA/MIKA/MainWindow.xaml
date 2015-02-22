@@ -76,7 +76,13 @@
             <DataGrid.RowDetailsTemplate>
                 <DataTemplate>
                     <StackPanel Background="{Binding TextColor}">
-                        <TextBlock Text="{Binding Code}" Foreground="White" FontWeight="Bold"/>
+                        <TextBox Text="{Binding Code, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                                 Background="{Binding TextColor}" 
+                                 BorderBrush="{Binding TextColor}" 
+                                 Foreground="White" 
+                                 FontWeight="Bold"
+                                 TextWrapping="Wrap"
+                                 AcceptsReturn="True"/>
                         <Image Source="{Binding ImageSource}" />
                     </StackPanel>
                 </DataTemplate>

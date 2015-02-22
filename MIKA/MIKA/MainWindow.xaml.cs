@@ -46,7 +46,7 @@ namespace MIKA
             {
                 string fileNameWithExtension = testName.Split('\\')[3];
                 string fileName = fileNameWithExtension.Substring(0, fileNameWithExtension.Length - 4);
-                Tests.Add(new Test(fileName, File.ReadAllText(testName), this));
+                Tests.Add(new Test(fileName, File.ReadAllText(testName), testName, this));
             }
 
             OnNeedsUI += (s, e) =>
