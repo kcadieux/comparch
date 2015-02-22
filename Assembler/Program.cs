@@ -369,6 +369,12 @@ namespace Assembler
                     {
                         string label = words[0].Split(':')[0];
                         labelDictionary.Add(label, instruction);
+
+                        //If the LABEL line also contains an instruction, count it
+                        if (Tools.StringToOperation(words[1]) != Operation.None)
+                        {
+                            instruction++;
+                        }
                     }
                 }
                 else

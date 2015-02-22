@@ -40,7 +40,52 @@ set ASSEMBLER_EXE 	"$topLevelDir/bin/Assembler.exe"
 set TARGET_CPU		"unpipelined_cpu"
 
 proc AddWaves {} {
+	global TARGET_CPU
 
+	;#Add standard waves we might be interested in to the Wave window
+	add wave -position end  sim:/$TARGET_CPU/clk
+	add wave -position end  sim:/$TARGET_CPU/current_state
+	add wave -position end  sim:/$TARGET_CPU/curr_instr
+	add wave -position end  sim:/$TARGET_CPU/pc
+	
+	;#Current instruction
+	add wave -group Instruction -radix hex      sim:/$TARGET_CPU/id_opcode\
+								-radix unsigned sim:/$TARGET_CPU/id_rs\
+								-radix unsigned sim:/$TARGET_CPU/id_rt\
+								-radix unsigned sim:/$TARGET_CPU/id_rd\
+	                            -radix decimal  sim:/$TARGET_CPU/id_imm_sign_ext\
+								-radix unsigned sim:/$TARGET_CPU/id_imm_zero_ext\
+								-radix unsigned sim:/$TARGET_CPU/id_branch_addr\
+								-radix unsigned sim:/$TARGET_CPU/id_jump_addr
+								
+	;#Register file signals
+	add wave -group Registers   -radix unsigned sim:/$TARGET_CPU/reg_read1_addr\
+								-radix decimal  sim:/$TARGET_CPU/reg_read1_data\
+								-radix unsigned sim:/$TARGET_CPU/reg_read2_addr\
+								-radix decimal  sim:/$TARGET_CPU/reg_read2_data\
+	                            sim:/$TARGET_CPU/reg_we\
+								-radix unsigned sim:/$TARGET_CPU/reg_write_addr\
+								-radix decimal  sim:/$TARGET_CPU/reg_write_data
+	
+	;#ALU signals
+	add wave -group ALU  		-radix decimal  sim:/$TARGET_CPU/alu_a\
+								-radix decimal  sim:/$TARGET_CPU/alu_a\
+								-radix decimal  sim:/$TARGET_CPU/alu_b\
+								-radix hex      sim:/$TARGET_CPU/alu_funct\
+								-radix unsigned sim:/$TARGET_CPU/alu_shamt\
+								-radix decimal  sim:/$TARGET_CPU/alu_result
+	
+	;#Memory signals
+	add wave -group Memory     	-radix unsigned sim:/$TARGET_CPU/mem_address\
+								sim:/$TARGET_CPU/mem_we\
+								sim:/$TARGET_CPU/mem_wr_done\
+								sim:/$TARGET_CPU/mem_re\
+								sim:/$TARGET_CPU/mem_rd_ready\
+								-radix decimal  sim:/$TARGET_CPU/mem_data
+								
+								
+	configure wave -namecolwidth 250
+	WaveRestoreZoom {0 ns} {8 ns}
 }
 
 proc CompileComponent {componentName} {
@@ -89,9 +134,11 @@ proc InitCPU {args} {
 	}	
 	
 	set memDump "_memdump"
-	vsim -quiet $TARGET_CPU -gFile_Address_Read="$datFileName.dat" -gFile_Address_Write="$datFileName$memDump.dat"
+	vsim -quiet $TARGET_CPU -gFile_Address_Read="$datFileName.dat" -gFile_Address_Write="$datFileName$memDump.dat" -gMem_Size=4096
 	
 	GenerateCPUClock
+	
+	AddWaves
 	
 	run 1 ns
 }
