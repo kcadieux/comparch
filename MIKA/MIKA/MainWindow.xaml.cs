@@ -107,10 +107,20 @@ namespace MIKA
 
             if (testsRunning <= 0)
             {
-                Cursor = Cursors.Arrow;
+                CursorToArrow();
             }
         }
-        
+
+        public void CursorToWait()
+        {
+            Cursor = Cursors.AppStarting;
+        }
+
+        public void CursorToArrow()
+        {
+            Cursor = Cursors.Arrow;
+        }
+
         private void RunSelectedTestsWorker()
         {
             if (Tests.Count(t => t.Selected) == 0)

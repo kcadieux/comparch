@@ -33,7 +33,9 @@
                 CanUserSortColumns="True"
                 RowBackground="LightCyan"
                 AlternatingRowBackground="LightBlue"
-                VerticalScrollBarVisibility="Auto">
+                HorizontalScrollBarVisibility="Auto"
+                VerticalScrollBarVisibility="Auto"
+                ScrollViewer.CanContentScroll="False">
             <DataGrid.Columns>
                 <DataGridTemplateColumn Width="SizeToCells">
                     <DataGridTemplateColumn.CellTemplate>
@@ -64,6 +66,15 @@
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <Image Source="{Binding ImageSource}" />
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTemplateColumn Header="Log" Width="*" IsReadOnly="True">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Path=Log, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}" 
+                                           IsEnabled="{Binding Path=DisplayLog, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}" 
+                                           FontSize="8"/>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>

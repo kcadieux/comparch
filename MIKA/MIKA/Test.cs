@@ -29,6 +29,8 @@ namespace MIKA
         {
             this.code = code;
             this.path = path;
+            Log = String.Empty;
+            DisplayLog = false;
             Name = name.ToUpper();
             State = State.Unknown;
             selected = false;
@@ -48,6 +50,10 @@ namespace MIKA
                 code = value;
             }
         }
+
+        public bool DisplayLog { get; private set; }
+
+        public string Log { get; private set; }
 
         public string Name { get; private set; }
 
@@ -130,22 +136,15 @@ namespace MIKA
 
         public void StartWorker()
         {
-            worker.RunWorkerAsync();
+            if (!worker.IsBusy)
+            {
+                mainWindow.CursorToWait();
+                worker.RunWorkerAsync();
+            }
         }
 
         public void runTest()
         {
-            //var processInfo = new ProcessStartInfo("cmd.exe", "/c" + "\"CPUS\\unpipelined_cpu\\scripts\\RunTest.bat " + Name.ToLower() + "\"");
-
-            //processInfo.CreateNoWindow = true;
-
-            //processInfo.UseShellExecute = false;
-
-            //processInfo.RedirectStandardError = false;
-            //processInfo.RedirectStandardOutput = true;
-
-            //var process = Process.Start(processInfo);
-
             ProcessStartInfo startInfo = new ProcessStartInfo();
             startInfo.FileName = "CPUS\\unpipelined_cpu\\scripts\\RunTest.bat";
             startInfo.Arguments = Name.ToLower();
@@ -153,38 +152,30 @@ namespace MIKA
             startInfo.UseShellExecute = false;
             startInfo.CreateNoWindow = true;
             startInfo.WindowStyle = ProcessWindowStyle.Hidden;
-            string output = String.Empty;
-            //var process = Process.Start(startInfo);
-            try
+            
+            using (Process exeProcess = Process.Start(startInfo))
             {
-                using (Process exeProcess = Process.Start(startInfo))
-                {
-                    exeProcess.WaitForExit();
-                    output = exeProcess.StandardOutput.ReadToEnd();
-                }
-            }
-            catch (Exception)
-            {
-                
-                throw;
+                exeProcess.WaitForExit();
+                Log = exeProcess.StandardOutput.ReadToEnd();
             }
             
-
-            //process.WaitForExit();
-
-            
-            if (output.Contains("SUCCESS"))
+            if (Log.Contains("SUCCESS"))
             {
                 State = State.Pass;
+                Log = String.Empty;
+                DisplayLog = false;
             }
             else
             {
                 State = State.Fail;
+                DisplayLog = true;
             }
 
             OnChanged("ImageSource");
             OnChanged("TextColor");
             OnChanged("Status");
+            OnChanged("Log");
+            //OnChanged("DisplayLog");
 
             mainWindow.TestDone();
         }
