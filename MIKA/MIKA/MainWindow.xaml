@@ -16,12 +16,19 @@
 
         <Image Grid.Row="0" Height="94" Source="title.png" />
         <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center">
-            <Button Height="22" Width="200" Content="{Binding Path=RunAllText}" Command="{Binding Path=RunAllTests}"/>
-            <Button Name="SelectedButton" Height="22" Width="200" Content="{Binding Path=RunSelectedText, UpdateSourceTrigger=Explicit}" Command="{Binding Path=RunSelectedTests}"/>
+            <Button Height="22" Width="150" Content="{Binding Path=RunAllText}" Command="{Binding Path=RunAllTests}"/>
+            <Button Name="SelectedButton" Height="22" Width="150" Content="{Binding Path=RunSelectedText, UpdateSourceTrigger=Explicit}" Command="{Binding Path=RunSelectedTests}"/>
             <ProgressBar Style="{StaticResource ProgressBarStyle}" Name="ProgressBar" Height="10" Width="100"/>
+            <StackPanel Orientation="Horizontal" 
+                        HorizontalAlignment="Center" 
+                        VerticalAlignment="Center">
+                <TextBlock Margin="10">Test name :</TextBlock>
+                <TextBox Name="TestName" Height="16" Width="100"></TextBox>
+                <Button Width="125" Content="Add a new test" Command="{Binding Path=AddNewTest}"/>
+            </StackPanel>
         </StackPanel>
         <TextBlock Grid.Row="2" HorizontalAlignment="Center">Double-click a test to edit it.</TextBlock>
-        <DataGrid Grid.Row="3" ItemsSource="{Binding Tests}"
+        <DataGrid Name="TestDataGrid"  Grid.Row="3" ItemsSource="{Binding Tests, UpdateSourceTrigger=Explicit}"
                   RowDetailsVisibilityMode="Collapsed"
                 AutoGenerateColumns="False"
                 CanUserReorderColumns="True" 

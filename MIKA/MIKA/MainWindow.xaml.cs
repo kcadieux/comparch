@@ -18,6 +18,8 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using Button = System.Windows.Controls.Button;
 using Cursors = System.Windows.Input.Cursors;
+using DataGrid = System.Windows.Controls.DataGrid;
+using Path = System.IO.Path;
 
 namespace MIKA
 {
@@ -83,6 +85,11 @@ namespace MIKA
             get { return new RelayCommand(param => runSelectedTests(), param => true); }
         }
 
+        public ICommand AddNewTest
+        {
+            get { return new RelayCommand(param => addNewTest(), param => true); }
+        }
+
         public List<Test> Tests { get; private set; }
 
         public void RefreshSelectedText()
@@ -141,6 +148,33 @@ namespace MIKA
             Cursor = Cursors.AppStarting;
             var s = new Thread(WorkerThreadRunSelected);
             s.Start();
+        }
+
+        private void addNewTest()
+        {
+            if (String.IsNullOrWhiteSpace(TestName.Text))
+            {
+                //TODO add warning msg
+                return;
+            }
+
+            string newFileName = Path.Combine("CPUS\\unpipelined_cpu\\tests", TestName.Text + ".asm");
+
+            if (File.Exists(newFileName))
+            {
+                //TODO add msg
+                return;
+            }
+
+            File.Create(newFileName);
+            var newTest = new Test(TestName.Text, string.Empty, newFileName, this);
+            Tests.Add(newTest);
+            Tests = Tests.OrderBy(t => t.Name).ToList();
+            TestDataGrid.ItemsSource = null;
+            TestDataGrid.ItemsSource = Tests;
+            TestDataGrid.SelectedItem = TestDataGrid.Items[Tests.IndexOf(newTest)];
+            TestDataGrid.Focus();
+            //TestDataGrid.GetBindingExpression(ItemsControl.ItemsSourceProperty).UpdateTarget();
         }
 
         private void runAllTests()
