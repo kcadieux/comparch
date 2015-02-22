@@ -18,13 +18,9 @@
         <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center">
             <Button Height="22" Width="200" Content="{Binding Path=RunAllText}" Command="{Binding Path=RunAllTests}"/>
             <Button Name="SelectedButton" Height="22" Width="200" Content="{Binding Path=RunSelectedText, UpdateSourceTrigger=Explicit}" Command="{Binding Path=RunSelectedTests}"/>
-            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="10" >
-                <CheckBox IsChecked="{Binding Path=Sync, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                <TextBlock> Synchronized </TextBlock>
-            </StackPanel>
-            <ProgressBar Name="ProgressBar" Height="10" Width="100"/>
+            <ProgressBar Style="{StaticResource ProgressBarStyle}" Name="ProgressBar" Height="10" Width="100"/>
         </StackPanel>
-        <TextBlock Grid.Row="2" HorizontalAlignment="Center">Double-Click a row for details.</TextBlock>
+        <TextBlock Grid.Row="2" HorizontalAlignment="Center">Double-click a test to edit it.</TextBlock>
         <DataGrid Grid.Row="3" ItemsSource="{Binding Tests}"
                   RowDetailsVisibilityMode="Collapsed"
                 AutoGenerateColumns="False"
@@ -58,7 +54,8 @@
                                        Foreground="{Binding Path=TextColor}"
                                        FontWeight="UltraBold" 
                                        FontSize="22" 
-                                       VerticalAlignment="Center"/>
+                                       VerticalAlignment="Center"
+                                       HorizontalAlignment="Center"/>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>

@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
+using System.Threading;
 using System.Windows;
 using System.Windows.Forms;
 using System.Windows.Controls;
@@ -24,6 +26,7 @@ namespace MIKA
     /// </summary>
     public partial class MainWindow : Window
     {
+        public bool busyThread;
         private int testsRunning, overallTests;
         public MainWindow()
         {
@@ -54,6 +57,7 @@ namespace MIKA
                 Dispatcher.Invoke((Action)delegate() { ChangeCursor(); });
             };
 
+            busyThread = false;
             testsRunning = 0;
             InitializeComponent();
             ProgressBar.Value = 100;
@@ -71,17 +75,15 @@ namespace MIKA
 
         public ICommand RunAllTests
         {
-            get { return new RelayCommand(param => RunAllTestsWorker(), param => true); }
+            get { return new RelayCommand(param => runAllTests(), param => true); }
         }
 
         public ICommand RunSelectedTests
         {
-            get { return new RelayCommand(param => RunSelectedTestsWorker(), param => true); }
+            get { return new RelayCommand(param => runSelectedTests(), param => true); }
         }
 
         public List<Test> Tests { get; private set; }
-
-        public bool Sync { get; set; }
 
         public void RefreshSelectedText()
         {
@@ -121,8 +123,13 @@ namespace MIKA
             Cursor = Cursors.Arrow;
         }
 
-        private void RunSelectedTestsWorker()
+        private void runSelectedTests()
         {
+            if (busyThread)
+            {
+                return;
+            }
+
             if (Tests.Count(t => t.Selected) == 0)
             {
                 return;
@@ -130,37 +137,48 @@ namespace MIKA
 
             ProgressBar.Value = 0;
             testsRunning = overallTests = Tests.Count(t => t.Selected);
-            foreach (var test in Tests.Where(t => t.Selected))
-            {
-                if (Sync)
-                {
-                    test.runTest();
-                }
-                else
-                {
-                    test.StartWorker();
-                }
-            }
 
             Cursor = Cursors.AppStarting;
+            var s = new Thread(WorkerThreadRunSelected);
+            s.Start();
         }
 
-        private void RunAllTestsWorker()
+        private void runAllTests()
         {
+            if (busyThread)
+            {
+                return;
+            }
+
             ProgressBar.Value = 0;
             testsRunning = overallTests = Tests.Count;
             Cursor = Cursors.AppStarting;
+
+            var t = new Thread(WorkerThreadRunAll);
+            t.Start();
+        }
+
+        private void WorkerThreadRunAll()
+        {
+            busyThread = true;
+            Test.PreTest();
             foreach (var test in Tests)
             {
-                if (Sync)
-                {
-                    test.runTest();
-                }
-                else
-                {
-                    test.StartWorker();
-                }
+                test.runTest();
             }
+            busyThread = false;
+        }
+
+        private void WorkerThreadRunSelected()
+        {
+            busyThread = true;
+            List<Test> tsts = Tests.Where(t => t.Selected).ToList();
+            Test.PreTest();
+            foreach (var test in tsts)
+            {
+                test.runTest();
+            }
+            busyThread = false;
         }
 
         private void RowDoubleClick(object sender, RoutedEventArgs e)
@@ -176,6 +194,47 @@ namespace MIKA
         {
             if (OnNeedsUI != null)
                 OnNeedsUI(null, EventArgs.Empty);
+        }
+
+        public static object DeepCopy(object obj)
+        {
+            if (obj == null)
+                return null;
+            Type type = obj.GetType();
+
+            if (type.IsValueType || type == typeof(string))
+            {
+                return obj;
+            }
+            else if (type.IsArray)
+            {
+                Type elementType = Type.GetType(
+                     type.FullName.Replace("[]", string.Empty));
+                var array = obj as Array;
+                Array copied = Array.CreateInstance(elementType, array.Length);
+                for (int i = 0; i < array.Length; i++)
+                {
+                    copied.SetValue(DeepCopy(array.GetValue(i)), i);
+                }
+                return Convert.ChangeType(copied, obj.GetType());
+            }
+            else if (type.IsClass)
+            {
+
+                object toret = Activator.CreateInstance(obj.GetType());
+                FieldInfo[] fields = type.GetFields(BindingFlags.Public |
+                            BindingFlags.NonPublic | BindingFlags.Instance);
+                foreach (FieldInfo field in fields)
+                {
+                    object fieldValue = field.GetValue(obj);
+                    if (fieldValue == null)
+                        continue;
+                    field.SetValue(toret, DeepCopy(fieldValue));
+                }
+                return toret;
+            }
+            else
+                throw new ArgumentException("Unknown type");
         }
     }
 }

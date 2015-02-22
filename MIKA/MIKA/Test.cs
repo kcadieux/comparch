@@ -131,16 +131,22 @@ namespace MIKA
 
         public void Work(object sender, DoWorkEventArgs e)
         {
+            PreTest();
             runTest();
         }
 
         public void StartWorker()
         {
-            if (!worker.IsBusy)
+            if (!worker.IsBusy && !mainWindow.busyThread)
             {
                 mainWindow.CursorToWait();
                 worker.RunWorkerAsync();
             }
+        }
+
+        public void RunTestAsync()
+        {
+            worker.RunWorkerAsync();
         }
 
         public void runTest()
@@ -198,6 +204,57 @@ namespace MIKA
             {
                 PropertyChanged(this, new PropertyChangedEventArgs(pn));
             }
+        }
+
+        // Delete the Work directory in Quartus and Compile again
+        public static void PreTest()
+        {
+            //try
+            //{
+            //    if (Directory.Exists("CPUS\\unpipelined_cpu\\quartus\\work"))
+            //    {
+            //        DeleteDirectory("CPUS\\unpipelined_cpu\\quartus\\work");
+            //    }
+            //}
+            //catch (Exception)
+            //{
+            //}
+
+            ProcessStartInfo startInfo = new ProcessStartInfo();
+            startInfo.FileName = "CPUS\\unpipelined_cpu\\scripts\\Compile.bat";
+            startInfo.RedirectStandardOutput = true;
+            startInfo.UseShellExecute = false;
+            startInfo.CreateNoWindow = true;
+            startInfo.WindowStyle = ProcessWindowStyle.Hidden;
+
+            using (Process exeProcess = Process.Start(startInfo))
+            {
+                exeProcess.WaitForExit();
+            }
+        }
+
+        public static void DeleteDirectory(string targetDir)
+        {
+            File.SetAttributes(targetDir, FileAttributes.Normal);
+
+            string[] files = Directory.GetFiles(targetDir);
+            string[] dirs = Directory.GetDirectories(targetDir);
+
+            foreach (string file in files)
+            {
+                if (File.Exists(file))
+                {
+                    File.SetAttributes(file, FileAttributes.Normal);
+                    File.Delete(file);
+                }
+            }
+
+            foreach (string dir in dirs)
+            {
+                DeleteDirectory(dir);
+            }
+
+            Directory.Delete(targetDir, false);
         }
     }
 }
