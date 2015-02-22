@@ -96,7 +96,14 @@ namespace MIKA
 
         private void ChangeCursor()
         {
-            ProgressBar.Value = 100 - ((float)testsRunning / (float)overallTests) * 100;
+            if (overallTests == 0)
+            {
+                ProgressBar.Value = 100;
+            }
+            else
+            {
+                ProgressBar.Value = 100 - ((float)testsRunning / (float)overallTests) * 100;
+            }            
 
             if (testsRunning <= 0)
             {
