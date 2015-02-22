@@ -54,11 +54,11 @@
                 <DataGridTemplateColumn Header="Status" Width="SizeToCells" IsReadOnly="True">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
-                            <TextBlock Text="{Binding Path=Status}" 
-                                           Foreground="{Binding Path=TextColor}" 
-                                           FontWeight="UltraBold" 
-                                           FontSize="22" 
-                                           VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding Path=Status}"
+                                       Foreground="{Binding Path=TextColor}"
+                                       FontWeight="UltraBold" 
+                                       FontSize="22" 
+                                       VerticalAlignment="Center"/>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
@@ -69,12 +69,12 @@
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
-                <DataGridTemplateColumn Header="Log" Width="*" IsReadOnly="True">
+                <DataGridTemplateColumn Header="Details" Width="*" IsReadOnly="True">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <TextBlock Text="{Binding Path=Log, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}" 
-                                           IsEnabled="{Binding Path=DisplayLog, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}" 
-                                           FontSize="8"/>
+                                       IsEnabled="{Binding Path=DisplayLog, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}" 
+                                       TextWrapping="Wrap"/>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
@@ -86,11 +86,8 @@
             </DataGrid.RowStyle>
             <DataGrid.RowDetailsTemplate>
                 <DataTemplate>
-                    <StackPanel Background="{Binding TextColor}">
+                    <StackPanel>
                         <TextBox Text="{Binding Code, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
-                                 Background="{Binding TextColor}" 
-                                 BorderBrush="{Binding TextColor}" 
-                                 Foreground="White" 
                                  FontWeight="Bold"
                                  TextWrapping="Wrap"
                                  AcceptsReturn="True"/>

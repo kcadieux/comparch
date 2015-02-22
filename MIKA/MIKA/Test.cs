@@ -167,6 +167,15 @@ namespace MIKA
             }
             else
             {
+                var splitted = Log.Split('\n');
+                foreach (var s in splitted)
+                {
+                    if (s.Contains("FAILURE"))
+                    {
+                        Log = s;
+                        break;
+                    }
+                }
                 State = State.Fail;
                 DisplayLog = true;
             }
