@@ -43,7 +43,20 @@
                 <DataGridTemplateColumn Header="Name" Width="SizeToCells" IsReadOnly="True">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
-                            <Button Width="200" VerticalAlignment="Center" Content="{Binding Path=Name}" Command="{Binding Path=RunTest}"/>
+                            <Button Width="200" 
+                                    VerticalAlignment="Center" 
+                                    Content="{Binding Path=Name}" 
+                                    Command="{Binding Path=RunTest}"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTemplateColumn Header="LiveCPU" Width="SizeToCells" IsReadOnly="True">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Button Width="125" 
+                                    VerticalAlignment="Center" 
+                                    Content="Live CPU Debugging" 
+                                    Command="{Binding Path=LiveCPU}"/>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>

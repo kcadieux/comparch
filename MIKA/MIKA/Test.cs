@@ -129,6 +129,11 @@ namespace MIKA
             get { return new RelayCommand(param => StartWorker(), param => true); }
         }
 
+        public ICommand LiveCPU
+        {
+            get { return new RelayCommand(param => StartLiveCPU(), param => true); }
+        }
+
         public void Work(object sender, DoWorkEventArgs e)
         {
             PreTest();
@@ -195,6 +200,21 @@ namespace MIKA
             mainWindow.TestDone();
         }
 
+        private void StartLiveCPU()
+        {
+            ProcessStartInfo startInfo = new ProcessStartInfo();
+            startInfo.FileName = "LiveCPU.bat";
+            startInfo.Arguments = Name;
+            startInfo.RedirectStandardOutput = true;
+            startInfo.UseShellExecute = false;
+            startInfo.CreateNoWindow = true;
+            startInfo.WindowStyle = ProcessWindowStyle.Hidden;
+
+            using (Process exeProcess = Process.Start(startInfo))
+            {
+                //exeProcess.WaitForExit();
+            }
+        }
 
         public event PropertyChangedEventHandler PropertyChanged;
 
