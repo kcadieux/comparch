@@ -67,7 +67,7 @@ BEGIN
       a_s XOR b_s                            WHEN funct = FUNCT_XOR ELSE
       b_s SLL shamt_n                        WHEN funct = FUNCT_SLL ELSE
       signed(b_u SRL shamt_n)                WHEN funct = FUNCT_SRL ELSE
-      b_s SRL shamt_n                        WHEN funct = FUNCT_SRA ELSE
+      SHIFT_RIGHT(b_s, shamt_n)              WHEN funct = FUNCT_SRA ELSE
       reg_hi                                 WHEN funct = FUNCT_MFHI ELSE
       reg_lo                                 WHEN funct = FUNCT_MFLO ELSE
       (others => '0');

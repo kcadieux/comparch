@@ -1,5 +1,6 @@
-addi $1 $0 4
-#addi $2 $0 9
+addi $1 $0 -2
 sra $3 $1 1
-asrti $3 2
+asrti $3 -1
+sra $3 $3 5
+asrti $3 -1
 halt
