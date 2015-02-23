@@ -11,6 +11,7 @@ CPUS/**/incremental_db/
 CPUS/**/output_files/
 CPUS/**/work/
 CPUS/**/tests/*.dat
+CPUS/**/quartus/Init[0-9].dat
 Assembler/**/bin/
 Assembler/**/obj/
 MIKA/**/bin/

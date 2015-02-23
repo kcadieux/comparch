@@ -1,4 +1,5 @@
 @echo off
+setlocal
 
 SET TEST_NAME=%1%
 
@@ -13,3 +14,5 @@ popd
 
 
 :EXIT
+
+endlocal
