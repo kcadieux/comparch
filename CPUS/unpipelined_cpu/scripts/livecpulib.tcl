@@ -77,6 +77,7 @@ proc AddWaves {} {
 	
 	;#Memory signals
 	add wave -group Memory     	-radix unsigned sim:/$TARGET_CPU/mem_address\
+								sim:/$TARGET_CPU/mem_word_byte\
 								sim:/$TARGET_CPU/mem_we\
 								sim:/$TARGET_CPU/mem_wr_done\
 								sim:/$TARGET_CPU/mem_re\
@@ -115,6 +116,7 @@ proc CompileCPU {} {
     CompileComponent op_codes
     CompileComponent alu_codes
     CompileComponent alu
+	CompileComponent Memory_in_Byte
     CompileComponent Main_Memory
     CompileComponent register_file
     CompileComponent instr_decoder
@@ -135,7 +137,7 @@ proc InitCPU {args} {
 	}	
 	
 	set memDump "_memdump"
-	vsim -quiet $TARGET_CPU -gFile_Address_Read="$datFileName.dat" -gFile_Address_Write="$datFileName$memDump.dat" -gMem_Size=4096
+	vsim -quiet $TARGET_CPU -gFile_Address_Read="$datFileName.dat" -gFile_Address_Write="$datFileName$memDump.dat" -gMem_Size_in_Word=4096
 	
 	GenerateCPUClock
 	

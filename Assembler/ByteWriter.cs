@@ -24,7 +24,7 @@ namespace Assembler
             var charString = s.ToCharArray();
             for (int i = 0; i < charString.Count(); i++)
             {
-                if (bitIndex == 8)
+                if (bitIndex == 32)
                 {
                     bitIndex = 0;
                     writer.Write("\n");
