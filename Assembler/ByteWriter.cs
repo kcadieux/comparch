@@ -9,6 +9,7 @@ namespace Assembler
     class ByteWriter : System.IDisposable
     {
         public const int BitsPerByte = 8;
+        public const int BitsPerLine = 32;
         private readonly StreamWriter writer;
         private int bitIndex;
 
@@ -18,13 +19,12 @@ namespace Assembler
             bitIndex = 0;
         }
 
-        // Writes one byte (8 characters) per line 
         public void Write(string s)
         {
             var charString = s.ToCharArray();
             for (int i = 0; i < charString.Count(); i++)
             {
-                if (bitIndex == 32)
+                if (bitIndex == BitsPerLine)
                 {
                     bitIndex = 0;
                     writer.Write("\n");

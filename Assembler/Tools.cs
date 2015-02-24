@@ -216,7 +216,7 @@ namespace Assembler
                 return true;
             }
 
-            if (File.Exists(Path.Combine(System.Reflection.Assembly.GetExecutingAssembly().Location, file)))
+            if (File.Exists(Path.Combine(Program.ApplicationDirectory, file)))
             {
                 FullFilePath = Path.Combine(System.Reflection.Assembly.GetExecutingAssembly().Location, file);
                 return true;

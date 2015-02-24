@@ -9,6 +9,8 @@ namespace Assembler
 {
     class Program
     {
+        public static string ApplicationDirectory =
+            Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
         static void Main(string[] args)
         {
             // Help option
@@ -48,7 +50,7 @@ namespace Assembler
                 }
 
                 // File option
-                string asmName = Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location), args[0]);
+                string asmName = Path.Combine(ApplicationDirectory, args[0]);
                 if (!Tools.FileExists(asmName))
                 {
                     Console.Out.WriteLine("The specified file cannot be found in the current folder.");
@@ -100,16 +102,11 @@ namespace Assembler
                 lines.Add(source.ReadLine());
             }
 
-            //string objFileName = Path.Combine(Path.GetDirectoryName(filePath),
-            //    Path.GetFileNameWithoutExtension(filePath)) + ".dat";
-
             if (labelPass)
             {
                 FirstPassThroughAssembly(lines, labelDictionary);  
             }
             
-            //using (var writer = new ByteWriter(objFileName))
-            //using (StreamWriter writer = new StreamWriter(File.Open(objFileName, FileMode.Create)))
             foreach (var line in lines)
             {
                 bool error = false;
