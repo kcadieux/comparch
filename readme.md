@@ -46,10 +46,12 @@ suite where a user can add a test inside the suite, assemble it, run it and see
 the result in as little as one click of a button.
 
 To open MIKA, open the MIKA.exe file in the root directory. To view or edit the 
-assembly code of a test, double click the row. To run it, click the test's blue button.
+assembly code of a test, double click the row. To run it, click the button with the test's name.
+To debug it with the LiveCPU tool, hit the "Live CPU Debugging" button.
 To run a subset of tests, check the tests' checkboxes and hit the "Run Selected Test" 
 button. To run all the test, hit the "Run All Tests" button. If a test fails, the details
-will be displayed.
+will be displayed. To add a new test, add the wanted name in the textbox and hit the "Add
+a new test" button.
 
 
 
