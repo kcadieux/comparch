@@ -38,27 +38,30 @@ The processor VHDL files are located in the CPUS/unpipelined_cpu/src folder.
 Processor extras:
 
 - Additional instructions have been developed to facilitate debugging:
-	asrti 	$rt imm   #Assert immediate: verify if register $rt is equal to imm.
-					  #Halt the processor if the check fails.
-	asrt	$rs $rt	  #Assert equal: verify that registers $rs and $rt are equal.
-					  #Halt the processor if the check fails.
-	halt			  #Halt the processor (eliminated the need to writing an infinite loop)
-	
-- LiveCPU tool, allowing interactive assembly instruction execution from the ModelSim command line (also see LiveCPU.pdf).
-	Most popular commands supported by LiveCPU:
-	- asm <assembly instruction>  : Run the provided assembly instruction.
-									(e.g. asm addi $1 $2 30)
-	- reg <register> <radix>	  : Inspect the value of the provided register and print it in the given radix.
-									If no radix is provided, the default value is "signed".
-								    (e.g. reg $1 unsigned)
-	- regs <radix>				  : Print the value of all registers in the given radix. If no radix is provided,
-									the default value is "signed".
-									(e.g. regs unsigned)
-	- test <test name>			  : Runs the test program with the given name in the CPUS/unpipelined_cpu/tests folder.
-									The test name must NOT include the .asm extension.
-									(e.g. test addi)  This will test the addi.asm file in the tests folder
-	- RebootCPU						Restarts the CPU from the beginning. 
 
+```	
+asrti $rt imm     #Verify if register $rt is equal to imm. Assert if not.
+asrt  $rs $rt	  #Verify that registers $rs and $rt are equal. Assert if not.
+halt			  #Halt the processor (eliminated the need to writing an infinite loop)
+```
+	
+- LiveCPU tool, allowing interactive assembly instruction execution from the ModelSim command line (also see LiveCPU.pdf). 
+Most popular commands supported by LiveCPU:
+
+```
+asm <assembly instruction>   #Run the provided assembly instruction.
+							 #(e.g. asm addi $1 $2 30)
+reg <register> <radix>	     #Inspect the value of the provided register and print it in the given radix.
+							 #If no radix is provided, the default value is "signed".
+							 #(e.g. reg $1 unsigned)
+regs <radix>				 #Print the value of all registers in the given radix. If no radix is provided,
+							 #the default value is "signed".
+							 #(e.g. regs unsigned)
+test <test name>			 #Runs the test program with the given name in the unpipelined_cpu/tests folder.
+							 #The test name must NOT include the .asm extension.
+							 #(e.g. test addi)  This will test the addi.asm file in the tests folder
+RebootCPU					 #Restarts the CPU from the beginning. 
+```
 
 _________________________________________________________________
 
@@ -79,7 +82,7 @@ will be displayed. To add a new test, add the wanted name in the textbox and hit
 a new test" button.
 
 
-
+```
 
                                  `| |
                     .-"-.__       | .' 
@@ -101,4 +104,4 @@ a new test" button.
            | |/                   |  |   :
            |_/                    | .  '
 
-		   
+```		   
