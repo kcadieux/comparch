@@ -93,25 +93,15 @@ proc AddWaves {} {
 proc CompileComponent {componentName} {
 	global SRC_FOLDER
 
+	vcom "$SRC_FOLDER/$componentName.vhd"
+}
+
+proc CompileCPU {} {
+
 	if {[expr ![file exists work]]} {
 		vlib work
 	}
 
-	set componentIsCompiled [file exists work/$componentName]
-	set srcTime             [file mtime "$SRC_FOLDER/$componentName.vhd"]
-
-	set compiledTime 0
-	if {$componentIsCompiled} {
-		set compiledTime    [file mtime work/$componentName]
-	}
-
-	if {[expr !$componentIsCompiled] || $srcTime >= $compiledTime} {
-		puts "Source version is more recent than compiled version. Compiling $componentName..."
-		vcom -quiet "$SRC_FOLDER/$componentName.vhd"
-	}
-}
-
-proc CompileCPU {} {
     CompileComponent architecture_constants
     CompileComponent op_codes
     CompileComponent alu_codes

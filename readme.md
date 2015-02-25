@@ -33,6 +33,31 @@ _________________________________________________________________
 
 2) PROCESSOR
 
+The processor VHDL files are located in the CPUS/unpipelined_cpu/src folder.
+
+Processor extras:
+
+- Additional instructions have been developed to facilitate debugging:
+	asrti 	$rt imm   #Assert immediate: verify if register $rt is equal to imm.
+					  #Halt the processor if the check fails.
+	asrt	$rs $rt	  #Assert equal: verify that registers $rs and $rt are equal.
+					  #Halt the processor if the check fails.
+	halt			  #Halt the processor (eliminated the need to writing an infinite loop)
+	
+- LiveCPU tool, allowing interactive assembly instruction execution from the ModelSim command line (also see LiveCPU.pdf).
+	Most popular commands supported by LiveCPU:
+	- asm <assembly instruction>  : Run the provided assembly instruction.
+									(e.g. asm addi $1 $2 30)
+	- reg <register> <radix>	  : Inspect the value of the provided register and print it in the given radix.
+									If no radix is provided, the default value is "signed".
+								    (e.g. reg $1 unsigned)
+	- regs <radix>				  : Print the value of all registers in the given radix. If no radix is provided,
+									the default value is "signed".
+									(e.g. regs unsigned)
+	- test <test name>			  : Runs the test program with the given name in the CPUS/unpipelined_cpu/tests folder.
+									The test name must NOT include the .asm extension.
+									(e.g. test addi)  This will test the addi.asm file in the tests folder
+	- RebootCPU						Restarts the CPU from the beginning. 
 
 
 _________________________________________________________________
@@ -40,7 +65,7 @@ _________________________________________________________________
 3) MIKA Test Suite
 
 In order to efficiently test our processor, a series of more than 30 tests
-have been developed. Usually, we would have to assemble them all, one by one
+has been developed. Usually, we would have to assemble them all, one by one
 and run them, again one by one in ModelSim. However, we built a complete test
 suite where a user can add a test inside the suite, assemble it, run it and see
 the result in as little as one click of a button.
