@@ -63,6 +63,7 @@ test <test name>			 #Runs the test program with the given name in the unpipeline
 RebootCPU					 #Restarts the CPU from the beginning. 
 ```
 
+IMPORTANT: vsim.exe and modelsim.exe must be on your PATH for LiveCPU to work! 
 _________________________________________________________________
 
 3) MIKA Test Suite
@@ -80,6 +81,8 @@ To run a subset of tests, check the tests' checkboxes and hit the "Run Selected 
 button. To run all the test, hit the "Run All Tests" button. If a test fails, the details
 will be displayed. To add a new test, add the wanted name in the textbox and hit the "Add
 a new test" button.
+
+IMPORTANT: vsim.exe and modelsim.exe must be on your PATH for MIKA to work! 
 
 
 ```
