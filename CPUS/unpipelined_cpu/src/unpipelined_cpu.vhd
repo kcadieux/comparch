@@ -100,6 +100,76 @@ ARCHITECTURE rtl OF unpipelined_cpu IS
    SIGNAL reg_write_addr   : STD_LOGIC_VECTOR(REG_ADDR_WIDTH-1 DOWNTO 0)   := (others => '0');
    SIGNAL reg_write_data   : STD_LOGIC_VECTOR(REG_DATA_WIDTH-1 DOWNTO 0)   := (others => '0');
    
+   
+   TYPE PIPE_STAGE         IS (ID, EX, MEM);   
+   
+   --Pipeline registers
+   TYPE PIPELINE_INFO_IF IS RECORD
+      pc                   : NATURAL;
+      next_pc              : NATURAL;
+      instr_ready          : STD_LOGIC;
+      instr                : STD_LOGIC_VECTOR(INSTR_WIDTH-1 DOWNTO 0);
+      
+      instr_dispatched     : STD_LOGIC;
+      instr_dispatching    : STD_LOGIC;
+      mem_tx_ongoing       : STD_LOGIC;
+      mem_lock             : STD_LOGIC;
+   END RECORD;
+   
+   TYPE PIPELINE_INFO_ID IS RECORD
+      instr                : STD_LOGIC_VECTOR(INSTR_WIDTH-1 DOWNTO 0);
+      
+      is_stalled           : STD_LOGIC;
+   END RECORD;
+   
+   TYPE PIPELINE_INFO_EX IS RECORD
+      opcode               : STD_LOGIC_VECTOR(5 DOWNTO 0);
+   
+      rs_val               : STD_LOGIC_VECTOR(4 DOWNTO 0);
+      rt_val               : STD_LOGIC_VECTOR(4 DOWNTO 0);
+      
+      imm                  : STD_LOGIC_VECTOR(IMMEDIATE_WIDTH-1 DOWNTO 0);
+      imm_sign_ext         : STD_LOGIC_VECTOR(REG_DATA_WIDTH-1 DOWNTO 0);
+      imm_zero_ext         : STD_LOGIC_VECTOR(REG_DATA_WIDTH-1 DOWNTO 0);
+   
+      alu_shamt            : STD_LOGIC_VECTOR(4 DOWNTO 0);
+      alu_funct            : STD_LOGIC_VECTOR(5 DOWNTO 0);
+      
+      alu_source_a         : PIPE_STAGE;
+      alu_source_b         : PIPE_STAGE;
+      mem_source           : PIPE_STAGE;
+      
+      reg_address          : STD_LOGIC_VECTOR(REG_ADDR_WIDTH-1 DOWNTO 0);
+      write_data           : STD_LOGIC_VECTOR(REG_DATA_WIDTH-1 DOWNTO 0);
+      
+      is_stalled           : STD_LOGIC;
+   END RECORD;
+   
+   TYPE PIPELINE_INFO_MEM IS RECORD
+      opcode               : STD_LOGIC_VECTOR(5 DOWNTO 0);
+   
+      mem_source           : PIPE_STAGE;
+      
+      reg_address          : STD_LOGIC_VECTOR(REG_ADDR_WIDTH-1 DOWNTO 0);
+      mem_address          : NATURAL;
+      write_data           : STD_LOGIC_VECTOR(REG_DATA_WIDTH-1 DOWNTO 0);
+      
+      is_stalled           : STD_LOGIC;
+      mem_lock             : STD_LOGIC;
+   END RECORD;
+   
+   TYPE PIPELINE_INFO_WB IS RECORD
+      reg_address          : STD_LOGIC_VECTOR(REG_ADDR_WIDTH-1 DOWNTO 0);
+      write_data           : STD_LOGIC_VECTOR(REG_DATA_WIDTH-1 DOWNTO 0);
+   END RECORD;
+   
+   SIGNAL pipe_if          : PIPELINE_INFO_IF;
+   SIGNAL pipe_id          : PIPELINE_INFO_ID;
+   SIGNAL pipe_ex          : PIPELINE_INFO_EX;
+   SIGNAL pipe_mem         : PIPELINE_INFO_MEM;
+   SIGNAL pipe_wb          : PIPELINE_INFO_WB;
+   
+   
 BEGIN
    
    main_memory : ENTITY work.Main_Memory
@@ -170,6 +240,42 @@ BEGIN
          write_addr     => reg_write_addr,
          write_data     => reg_write_data
       );
+      
+      
+   pipeline_fetch : PROCESS (clk, mem_rd_ready, mem_data, pipe_if, pipe_id)
+   BEGIN
+   
+      pipe_if.mem_lock           <= (pipe_if.mem_tx_ongoing AND NOT mem_rd_ready);
+      pipe_if.instr_dispatching  <= NOT pipe_id.is_stalled AND ((pipe_if.mem_tx_ongoing AND mem_rd_ready) OR pipe_if.instr_ready);
+   
+      IF (clk'event AND clk = '1') THEN
+      
+         pipe_if.mem_tx_ongoing     <= pipe_if.mem_lock;
+         pipe_if.instr_dispatched   <= pipe_if.instr_dispatched OR pipe_if.instr_dispatching;
+      
+         IF (pipe_if.mem_tx_ongoing = '1' AND mem_rd_ready = '1') THEN
+            IF (pipe_id.is_stalled = '0') THEN
+               pipe_id.instr           <= mem_data;
+            ELSE
+               pipe_if.instr           <= mem_data;
+               pipe_if.instr_ready     <= '1';
+            END IF;
+         END IF;
+         
+         IF (pipe_if.instr_ready = '1' AND pipe_id.is_stalled = '0') THEN
+            pipe_id.instr              <= pipe_if.instr;
+            pipe_if.instr_ready        <= '0';
+         END IF;
+         
+         IF (pipe_mem.mem_lock = '0' AND (pipe_if.instr_dispatching = '1' OR pipe_if.instr_dispatched = '1')) THEN
+            pipe_if.mem_tx_ongoing     <= '1';
+            pipe_if.pc                 <= pipe_if.next_pc;
+            pipe_if.instr_dispatched   <= '0';
+         END IF;
+         
+         
+      END IF;
+   END PROCESS;
    
    fsm : PROCESS (clk, current_state, mem_rd_ready, mem_wr_done, mem_data, pc,
                   id_opcode, id_funct, id_branch_addr, id_jump_addr, reg_read1_data, reg_read2_data, id_imm_sign_ext)
@@ -178,7 +284,7 @@ BEGIN
          CASE current_state IS
          
             WHEN INITIAL =>
-               current_state     <= FETCH;
+               current_state        <= FETCH;
          
             WHEN FETCH =>
                IF (mem_rd_ready = '1') THEN

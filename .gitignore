@@ -3,6 +3,7 @@
 *.wlf
 *.user
 *.log
+*.qws
 wlf*
 ~$*
 transcript
