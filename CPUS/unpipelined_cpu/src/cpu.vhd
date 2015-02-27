@@ -17,14 +17,15 @@ use ieee.numeric_std.all; -- allows use of the unsigned type
 use work.architecture_constants.all;
 use work.op_codes.all;
 use work.alu_codes.all;
+use work.cpu_types.all;
 
-ENTITY unpipelined_cpu IS
+ENTITY cpu IS
    
    GENERIC (
       File_Address_Read    : STRING    := "Init.dat";
       File_Address_Write   : STRING    := "MemCon.dat";
       Mem_Size_in_Word     : INTEGER   := 256;
-      Read_Delay           : INTEGER   := 0; 
+      Read_Delay           : INTEGER   := 3; 
       Write_Delay          : INTEGER   := 0
    );
    PORT (
@@ -42,17 +43,13 @@ ENTITY unpipelined_cpu IS
       mem_dump:         IN    STD_LOGIC := '0'
    );
    
-END unpipelined_cpu;
+END cpu;
 
-ARCHITECTURE rtl OF unpipelined_cpu IS
+ARCHITECTURE rtl OF cpu IS
    
-   TYPE STATE IS (INITIAL, FETCH, EXEC, MEM, MEM_WB, HALT, ASSRT);
+   TYPE STATE IS (INITIAL, RUNNING, HALT, ASSRT);
    
    SIGNAL current_state    : STATE     := INITIAL;
-   SIGNAL pc               : NATURAL   := 0;
-   
-   SIGNAL curr_instr       : STD_LOGIC_VECTOR(8 * NB_INSTR_BYTES - 1 DOWNTO 0) := (others => '0');
-   SIGNAL load_buffer      : STD_LOGIC_VECTOR(REG_DATA_WIDTH - 1 DOWNTO 0) := (others => '0');
    
    --Main memory signals
    SIGNAL mem_address      : NATURAL                                       := 0;
@@ -102,12 +99,11 @@ ARCHITECTURE rtl OF unpipelined_cpu IS
    
    
    
-   
-   SIGNAL pipe_if          : PIPELINE_INFO_IF;
-   SIGNAL pipe_id          : PIPELINE_INFO_ID;
-   SIGNAL pipe_ex          : PIPELINE_INFO_EX;
-   SIGNAL pipe_mem         : PIPELINE_INFO_MEM;
-   SIGNAL pipe_wb          : PIPELINE_INFO_WB;
+   SIGNAL pipe_if          : PIPELINE_INFO_IF      := DEFAULT_IF;
+   SIGNAL pipe_id          : PIPELINE_INFO_ID      := DEFAULT_ID;
+   SIGNAL pipe_ex          : PIPELINE_INFO_EX      := DEFAULT_EX;
+   SIGNAL pipe_mem         : PIPELINE_INFO_MEM     := DEFAULT_MEM;
+   SIGNAL pipe_wb          : PIPELINE_INFO_WB      := DEFAULT_WB;
    
    
 BEGIN
@@ -135,7 +131,7 @@ BEGIN
    
    instruction_decoder : ENTITY work.instr_decoder
       PORT MAP (
-         instr          => curr_instr,
+         instr          => pipe_id.instr,
          
          opcode         => id_opcode,
          
@@ -180,15 +176,25 @@ BEGIN
          write_data     => reg_write_data
       );
       
+   
       
-   memory_ctrl    : PROCESS (pipe_if, pipe_mem)
+      
+   memory_ctrl    : PROCESS (pipe_if, pipe_mem, live_mode)
    BEGIN
-      IF (pipe_mem.mem_lock = '0') THEN
+      mem_re         <= '0';
+      mem_we         <= '0';
+      mem_address    <= 0;
+      mem_data       <= (others => 'Z');
+      mem_word_byte  <= '1';
+      mem_initialize <= reset;
+      
+   
+      IF (pipe_mem.mem_lock = '0' AND live_mode = '0') THEN
          mem_re         <= '1';
          mem_word_byte  <= '1';
          mem_address    <= pipe_if.mem_address;
      
-      ELSE
+      ELSIF (pipe_mem.mem_lock = '1') THEN
          mem_re         <= pipe_mem.mem_read;
          mem_we         <= NOT pipe_mem.mem_read;
          mem_word_byte  <= pipe_mem.mem_word_byte;
@@ -202,8 +208,9 @@ BEGIN
    pipeline_fetch : PROCESS (clk, mem_rd_ready, mem_data, pipe_if, pipe_id, pipe_mem)
    BEGIN
    
-      pipe_if.mem_lock           <= (pipe_if.mem_tx_ongoing AND NOT mem_rd_ready);
-      pipe_if.instr_dispatching  <= NOT pipe_id.is_stalled AND ((pipe_if.mem_tx_ongoing AND mem_rd_ready) OR pipe_if.instr_ready);
+      finished_instr             <= pipe_if.instr_start_fetch;
+      pipe_if.mem_lock           <= (pipe_if.mem_tx_ongoing AND (NOT mem_rd_ready AND NOT live_mode));
+      pipe_if.instr_dispatching  <= NOT pipe_id.is_stalled AND ((pipe_if.mem_tx_ongoing AND (mem_rd_ready OR live_mode)) OR pipe_if.instr_ready);
       pipe_if.instr_start_fetch  <= NOT pipe_mem.mem_lock AND (pipe_if.instr_dispatching OR pipe_if.instr_dispatched);
    
       pipe_if.mem_address        <= pipe_if.pc;
@@ -215,15 +222,25 @@ BEGIN
          
          pipe_if.mem_tx_ongoing     <= pipe_if.mem_lock;
          pipe_if.instr_dispatched   <= pipe_if.instr_dispatched OR pipe_if.instr_dispatching;
+         
+         pipe_id                    <= DEFAULT_ID;
       
          --If current memory transaction is done...
-         IF (pipe_if.mem_tx_ongoing = '1' AND mem_rd_ready = '1') THEN
+         IF (pipe_if.mem_tx_ongoing = '1' AND (mem_rd_ready = '1' OR live_mode = '1')) THEN
             IF (pipe_id.is_stalled = '0') THEN
                pipe_id.instr           <= mem_data;
+               
+               IF (live_mode = '1') THEN
+                  pipe_id.instr        <= live_instr;
+               END IF;
             ELSE
                --Save instruction for when the ID stage will unstall
                pipe_if.instr           <= mem_data;
                pipe_if.instr_ready     <= '1';
+               
+               IF (live_mode = '1') THEN
+                  pipe_if.instr        <= live_instr;
+               END IF;
             END IF;
          END IF;
          
@@ -234,12 +251,16 @@ BEGIN
          
          IF (pipe_if.instr_start_fetch = '1') THEN
             pipe_if.mem_tx_ongoing     <= '1';
-            pipe_if.pc                 <= pipe_if.pc + 4;
             pipe_if.instr_dispatched   <= '0';
+            
+            IF (live_mode = '0') THEN
+               pipe_if.pc              <= pipe_if.pc + 4;
+            END IF;
          END IF;
          
       END IF;
    END PROCESS;
+   
    
    
    

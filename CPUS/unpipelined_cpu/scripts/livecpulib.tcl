@@ -37,7 +37,7 @@ set 31 "\$31"; 	set ra   "\$31";
 set SRC_FOLDER		"$topLevelDir/src"
 set TEST_FOLDER		"$topLevelDir/tests"
 set ASSEMBLER_EXE 	"$topLevelDir/bin/Assembler.exe"
-set TARGET_CPU		"unpipelined_cpu"
+set TARGET_CPU		"cpu"
 
 proc AddWaves {} {
 	global TARGET_CPU
@@ -45,18 +45,16 @@ proc AddWaves {} {
 	;#Add standard waves we might be interested in to the Wave window
 	add wave -position end  sim:/$TARGET_CPU/clk
 	add wave -position end  sim:/$TARGET_CPU/current_state
-	add wave -position end  sim:/$TARGET_CPU/curr_instr
-	add wave -position end  sim:/$TARGET_CPU/pc
 	
-	;#Current instruction
-	add wave -group Instruction -radix hex      sim:/$TARGET_CPU/id_opcode\
-								-radix unsigned sim:/$TARGET_CPU/id_rs\
-								-radix unsigned sim:/$TARGET_CPU/id_rt\
-								-radix unsigned sim:/$TARGET_CPU/id_rd\
-	                            -radix decimal  sim:/$TARGET_CPU/id_imm_sign_ext\
-								-radix unsigned sim:/$TARGET_CPU/id_imm_zero_ext\
-								-radix unsigned sim:/$TARGET_CPU/id_branch_addr\
-								-radix unsigned sim:/$TARGET_CPU/id_jump_addr
+	;#IF stage signals
+	add wave -group "IF Stage"  -radix unsigned sim:/$TARGET_CPU/pipe_if.pc\
+								sim:/$TARGET_CPU/pipe_if.instr_ready\
+								sim:/$TARGET_CPU/pipe_if.instr\
+								sim:/$TARGET_CPU/pipe_if.instr_dispatched\
+								sim:/$TARGET_CPU/pipe_if.instr_start_fetch\
+	                            sim:/$TARGET_CPU/pipe_if.mem_tx_ongoing\
+								sim:/$TARGET_CPU/pipe_if.mem_lock\
+								sim:/$TARGET_CPU/pipe_if.mem_address
 								
 	;#Register file signals
 	add wave -group Registers   -radix unsigned sim:/$TARGET_CPU/reg_read1_addr\
@@ -110,7 +108,8 @@ proc CompileCPU {} {
     CompileComponent Main_Memory
     CompileComponent register_file
     CompileComponent instr_decoder
-    CompileComponent unpipelined_cpu
+	CompileComponent cpu_types
+    CompileComponent cpu
 }
 
 proc GenerateCPUClock {} {
@@ -166,12 +165,6 @@ proc bin {args} {
 proc ExecuteInstruction {args} {
 	global ASSEMBLER_EXE
 	global TARGET_CPU
-	
-	;#Verify that CPU is in FETCH state
-	if {[exa /$TARGET_CPU/current_state] != "FETCH"} {
-		puts "The CPU must be in the FETCH state to insert an instruction"
-		return -1
-	}
 	
 	;# Activate live mode
 	force -deposit /$TARGET_CPU/live_mode 1
