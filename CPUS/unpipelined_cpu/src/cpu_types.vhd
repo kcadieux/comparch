@@ -39,36 +39,44 @@ PACKAGE cpu_types IS
       
    
    TYPE PIPELINE_INFO_ID IS RECORD
+      pc                   : NATURAL;
+      next_pc              : NATURAL;
       instr                : STD_LOGIC_VECTOR(INSTR_WIDTH-1 DOWNTO 0);
       
       is_stalled           : STD_LOGIC;
+      
+      branch_requested     : STD_LOGIC;
+      branch_addr          : NATURAL;
+      branch_rs_dd_exists  : STD_LOGIC;
+      branch_rt_dd_exists  : STD_LOGIC;
    END RECORD;
    
    CONSTANT DEFAULT_ID : PIPELINE_INFO_ID := (
-         instr             => (others => '0'),
-         is_stalled        => '0'
+         pc                   => 0,
+         next_pc              => 0,
+         instr                => (others => '0'),
+         is_stalled           => '0',
+         branch_requested     => '0',
+         branch_addr          => 0,
+         branch_rs_dd_exists  => '0',
+         branch_rt_dd_exists  => '0'
       );
    
    
    TYPE PIPELINE_INFO_EX IS RECORD
-      opcode               : STD_LOGIC_VECTOR(5 DOWNTO 0);
+      opcode               : STD_LOGIC_VECTOR(OP_CODE_WIDTH-1 DOWNTO 0);
    
-      rs_val               : STD_LOGIC_VECTOR(4 DOWNTO 0);
-      rt_val               : STD_LOGIC_VECTOR(4 DOWNTO 0);
+      rs_val               : STD_LOGIC_VECTOR(REG_DATA_WIDTH-1 DOWNTO 0);
+      rt_val               : STD_LOGIC_VECTOR(REG_DATA_WIDTH-1 DOWNTO 0);
       
       imm                  : STD_LOGIC_VECTOR(IMMEDIATE_WIDTH-1 DOWNTO 0);
       imm_sign_ext         : STD_LOGIC_VECTOR(REG_DATA_WIDTH-1 DOWNTO 0);
       imm_zero_ext         : STD_LOGIC_VECTOR(REG_DATA_WIDTH-1 DOWNTO 0);
    
-      alu_shamt            : STD_LOGIC_VECTOR(4 DOWNTO 0);
-      alu_funct            : STD_LOGIC_VECTOR(5 DOWNTO 0);
-      
-      alu_source_a         : PIPE_STAGE;
-      alu_source_b         : PIPE_STAGE;
-      mem_source           : PIPE_STAGE;
+      alu_shamt            : STD_LOGIC_VECTOR(ALU_SHAMT_WIDTH-1 DOWNTO 0);
+      alu_funct            : STD_LOGIC_VECTOR(ALU_FUNCT_WIDTH-1 DOWNTO 0);
       
       reg_address          : STD_LOGIC_VECTOR(REG_ADDR_WIDTH-1 DOWNTO 0);
-      write_data           : STD_LOGIC_VECTOR(REG_DATA_WIDTH-1 DOWNTO 0);
       
       is_stalled           : STD_LOGIC;
    END RECORD;
@@ -86,12 +94,7 @@ PACKAGE cpu_types IS
          alu_shamt            => (others => '0'),
          alu_funct            => (others => '0'),
       
-         alu_source_a         => ID,
-         alu_source_b         => ID,
-         mem_source           => EX,
-      
          reg_address          => (others => '0'),
-         write_data           => (others => '0'),
       
          is_stalled           => '0'
       );
@@ -103,7 +106,7 @@ PACKAGE cpu_types IS
       mem_source           : PIPE_STAGE;
       
       reg_address          : STD_LOGIC_VECTOR(REG_ADDR_WIDTH-1 DOWNTO 0);
-      write_data           : STD_LOGIC_VECTOR(REG_DATA_WIDTH-1 DOWNTO 0);
+      reg_data             : STD_LOGIC_VECTOR(REG_DATA_WIDTH-1 DOWNTO 0);
       
       is_stalled           : STD_LOGIC;
       
@@ -120,7 +123,7 @@ PACKAGE cpu_types IS
          mem_source           => EX,
       
          reg_address          => (others => '0'),
-         write_data           => (others => '0'),
+         reg_data             => (others => '0'),
       
          is_stalled           => '0',
          

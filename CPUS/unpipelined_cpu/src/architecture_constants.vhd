@@ -1,3 +1,6 @@
+library ieee;
+
+use ieee.std_logic_1164.all; -- allows use of the std_logic_vector type
 
 PACKAGE architecture_constants IS
    CONSTANT    MEM_ADDR_WIDTH    : INTEGER := 32;
@@ -15,4 +18,6 @@ PACKAGE architecture_constants IS
    CONSTANT    INSTR_WIDTH       : INTEGER := 32;
    
    CONSTANT    IMMEDIATE_WIDTH   : INTEGER := 16;
+   
+   CONSTANT    ZERO_REG          : STD_LOGIC_VECTOR(REG_ADDR_WIDTH-1 DOWNTO 0) := (others => '0');
 END architecture_constants;

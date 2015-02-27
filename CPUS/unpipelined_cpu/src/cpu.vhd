@@ -132,6 +132,7 @@ BEGIN
    instruction_decoder : ENTITY work.instr_decoder
       PORT MAP (
          instr          => pipe_id.instr,
+         next_pc        => pipe_id.next_pc,
          
          opcode         => id_opcode,
          
@@ -187,7 +188,6 @@ BEGIN
       mem_data       <= (others => 'Z');
       mem_word_byte  <= '1';
       mem_initialize <= reset;
-      
    
       IF (pipe_mem.mem_lock = '0' AND live_mode = '0') THEN
          mem_re         <= '1';
@@ -205,17 +205,22 @@ BEGIN
    
    END PROCESS;
       
-   pipeline_fetch : PROCESS (clk, mem_rd_ready, mem_data, pipe_if, pipe_id, pipe_mem)
+   ---------------------------------------------------------------------------------------------------------------------------
+   -- FETCH STAGE
+   ---------------------------------------------------------------------------------------------------------------------------
+   pipeline_fetch : PROCESS (clk, mem_rd_ready, mem_data, pipe_if, pipe_id, pipe_mem, live_instr, live_mode)
    BEGIN
    
       finished_instr             <= pipe_if.instr_start_fetch;
-      pipe_if.mem_lock           <= (pipe_if.mem_tx_ongoing AND (NOT mem_rd_ready AND NOT live_mode));
+      pipe_if.mem_lock           <= pipe_if.mem_tx_ongoing AND NOT mem_rd_ready AND NOT live_mode AND NOT pipe_id.branch_requested;
       pipe_if.instr_dispatching  <= NOT pipe_id.is_stalled AND ((pipe_if.mem_tx_ongoing AND (mem_rd_ready OR live_mode)) OR pipe_if.instr_ready);
-      pipe_if.instr_start_fetch  <= NOT pipe_mem.mem_lock AND (pipe_if.instr_dispatching OR pipe_if.instr_dispatched);
+      pipe_if.instr_start_fetch  <= NOT pipe_mem.mem_lock AND (pipe_if.instr_dispatching OR pipe_if.instr_dispatched OR pipe_id.branch_requested);
    
       pipe_if.mem_address        <= pipe_if.pc;
       IF (pipe_if.instr_start_fetch = '1') THEN
          pipe_if.mem_address     <= pipe_if.pc + 4;
+      ELSIF (pipe_id.branch_requested = '1') THEN
+         pipe_if.mem_address     <= pipe_id.branch_addr;
       END IF;
    
       IF (clk'event AND clk = '1') THEN
@@ -224,9 +229,10 @@ BEGIN
          pipe_if.instr_dispatched   <= pipe_if.instr_dispatched OR pipe_if.instr_dispatching;
          
          pipe_id                    <= DEFAULT_ID;
+         pipe_id.pc                 <= pipe_if.pc;
       
          --If current memory transaction is done...
-         IF (pipe_if.mem_tx_ongoing = '1' AND (mem_rd_ready = '1' OR live_mode = '1')) THEN
+         IF (pipe_if.mem_tx_ongoing = '1' AND ((mem_rd_ready = '1' AND pipe_id.branch_requested = '0') OR live_mode = '1')) THEN
             IF (pipe_id.is_stalled = '0') THEN
                pipe_id.instr           <= mem_data;
                
@@ -255,13 +261,106 @@ BEGIN
             
             IF (live_mode = '0') THEN
                pipe_if.pc              <= pipe_if.pc + 4;
+            ELSIF (pipe_id.branch_requested = '1') THEN
+               pipe_if.pc              <= pipe_id.branch_addr + 4;
             END IF;
          END IF;
          
       END IF;
    END PROCESS;
    
+   ---------------------------------------------------------------------------------------------------------------------------
+   -- DECODE STAGE
+   ---------------------------------------------------------------------------------------------------------------------------
+   pipeline_decode    : PROCESS (clk, pipe_id, pipe_ex, pipe_mem, id_opcode, id_rs, id_rt, id_rd, id_funct, id_shamt,
+                                 id_imm, id_imm_sign_ext, id_imm_zero_ext, id_branch_addr, id_jump_addr,
+                                 reg_read1_data, reg_read2_data)
+   BEGIN
+      
+      pipe_id.next_pc                    <= pipe_id.pc;
+      pipe_id.is_stalled                 <= pipe_ex.is_stalled;
+      
+      IF (id_opcode = OP_BEQ OR id_opcode = OP_BNE OR (id_opcode = OP_ALU AND id_funct = FUNCT_JR)) THEN
+      
+         --Detect stalling data dependence 1 instruction back
+         IF ((pipe_ex.opcode = OP_ALU OR pipe_ex.opcode = OP_LB OR pipe_ex.opcode = OP_LW) AND 
+             ((pipe_ex.reg_address = id_rs AND id_rs /= ZERO_REG) OR (pipe_ex.reg_address = id_rt AND id_rt /= ZERO_REG))) THEN
+            pipe_id.is_stalled   <= '1';
+         END IF;
+         
+         --Detect stalling data dependence 2 instructions back
+         IF ((pipe_mem.opcode = OP_LW OR pipe_mem.opcode = OP_LB) AND
+             ((pipe_mem.reg_address = id_rs AND id_rs /= ZERO_REG) OR (pipe_mem.reg_address = id_rt AND id_rt /= ZERO_REG))) THEN
+            pipe_id.is_stalled   <= '1';
+            
+         END IF;
+      END IF;
+      
+      pipe_id.branch_requested      <= '0';
+      IF (pipe_id.is_stalled = '0' AND (IS_BRANCH_OP(id_opcode) OR IS_JUMP_OP(id_opcode, id_funct))) THEN
+         pipe_id.branch_requested   <= '1';
+      END IF;
+      
+      pipe_id.branch_rs_dd_exists   <= '0';
+      IF (IS_ALU_OP(pipe_mem.opcode) AND pipe_mem.reg_address = id_rs AND id_rs /= ZERO_REG) THEN
+         pipe_id.branch_rs_dd_exists   <= '1';
+      END IF;
+      
+      pipe_id.branch_rt_dd_exists   <= '0';
+      IF (IS_ALU_OP(pipe_mem.opcode) AND pipe_mem.reg_address = id_rt AND id_rt /= ZERO_REG) THEN
+         pipe_id.branch_rt_dd_exists   <= '1';
+      END IF;
+      
+      pipe_id.branch_addr           <= pipe_id.next_pc;
+      IF ((pipe_id.branch_requested = '1' AND pipe_id.branch_rs_dd_exists = '0' AND pipe_id.branch_rt_dd_exists = '0' AND id_opcode = OP_BEQ AND reg_read1_data =  reg_read2_data) OR
+          (pipe_id.branch_requested = '1' AND pipe_id.branch_rs_dd_exists = '0' AND pipe_id.branch_rt_dd_exists = '0' AND id_opcode = OP_BNE AND reg_read1_data /= reg_read2_data) OR
+          (pipe_id.branch_requested = '1' AND pipe_id.branch_rs_dd_exists = '1' AND pipe_id.branch_rt_dd_exists = '0' AND id_opcode = OP_BEQ AND pipe_mem.reg_data =  reg_read2_data) OR
+          (pipe_id.branch_requested = '1' AND pipe_id.branch_rs_dd_exists = '1' AND pipe_id.branch_rt_dd_exists = '0' AND id_opcode = OP_BNE AND pipe_mem.reg_data /= reg_read2_data) OR
+          (pipe_id.branch_requested = '1' AND pipe_id.branch_rs_dd_exists = '0' AND pipe_id.branch_rt_dd_exists = '1' AND id_opcode = OP_BEQ AND reg_read1_data =  pipe_mem.reg_data) OR
+          (pipe_id.branch_requested = '1' AND pipe_id.branch_rs_dd_exists = '0' AND pipe_id.branch_rt_dd_exists = '1' AND id_opcode = OP_BNE AND reg_read1_data /= pipe_mem.reg_data)) THEN
+         pipe_id.branch_addr        <= to_integer(unsigned(id_branch_addr));
+      END IF;
+      
+      IF (pipe_id.branch_requested = '1' AND IS_JUMP_OP(id_opcode, id_funct)) THEN
+         pipe_id.branch_addr  <= to_integer(unsigned(id_jump_addr));
+         
+         IF (id_opcode = OP_ALU AND id_funct = FUNCT_JR AND pipe_id.branch_rs_dd_exists = '1') THEN
+            pipe_id.branch_addr  <= to_integer(unsigned(pipe_mem.reg_data));
+         ELSIF (id_opcode = OP_ALU AND id_funct = FUNCT_JR) THEN
+            pipe_id.branch_addr  <= to_integer(unsigned(reg_read1_data));
+         END IF;
+      END IF;
+      
+      reg_read1_addr <= id_rs;
+      reg_read2_addr <= id_rt;
+      
+      IF (clk'event AND clk = '1') THEN
+      
+         pipe_ex     <= DEFAULT_EX;
+         
+         IF (pipe_id.is_stalled = '0') THEN
+            pipe_ex.opcode          <= id_opcode;
+            pipe_ex.rs_val          <= reg_read1_data;
+            pipe_ex.rt_val          <= reg_read2_data;
+            pipe_ex.imm             <= id_imm;
+            pipe_ex.imm_sign_ext    <= id_imm_sign_ext;
+            pipe_ex.imm_zero_ext    <= id_imm_zero_ext;
+            pipe_ex.alu_shamt       <= id_shamt;
+            pipe_ex.alu_funct       <= id_funct;
+            pipe_ex.reg_address     <= ZERO_REG;
+            
+            --TODO: Move to EX stage
+            IF (id_opcode = OP_ALU OR IS_JUMP_OP(id_opcode, id_funct)) THEN
+               pipe_ex.reg_address  <= id_rd;
+            ELSIF (IS_ALU_OP(id_opcode)) THEN
+               --We have some sort of immediate instr, so use rt as destination reg
+               pipe_ex.reg_address  <= id_rt;
+            END IF;
+         END IF;
+       
+      END IF;
    
+   END PROCESS;
    
    
 END rtl;
