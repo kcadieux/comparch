@@ -33,48 +33,5 @@ PACKAGE op_codes IS
    CONSTANT    OP_JAL_REG  : STD_LOGIC_VECTOR(REG_ADDR_WIDTH-1 DOWNTO 0) := std_logic_vector(to_unsigned(31, REG_ADDR_WIDTH));
    CONSTANT    OP_LUI_PAD  : STD_LOGIC_VECTOR(15 DOWNTO 0)               := std_logic_vector(to_unsigned(0, 16));
    
-   FUNCTION IS_ALU_OP(op : STD_LOGIC_VECTOR(OP_CODE_WIDTH-1 DOWNTO 0)) RETURN BOOLEAN;
-   FUNCTION IS_BRANCH_OP(op : STD_LOGIC_VECTOR(OP_CODE_WIDTH-1 DOWNTO 0)) RETURN BOOLEAN;
-   FUNCTION IS_JUMP_OP(op : STD_LOGIC_VECTOR(OP_CODE_WIDTH-1 DOWNTO 0); funct : STD_LOGIC_VECTOR(ALU_FUNCT_WIDTH-1 DOWNTO 0)) RETURN BOOLEAN;
-END op_codes;
-
-PACKAGE BODY op_codes IS
-
-   FUNCTION IS_ALU_OP(op : STD_LOGIC_VECTOR(OP_CODE_WIDTH-1 DOWNTO 0)) RETURN BOOLEAN IS
-   BEGIN
-      IF (op = OP_ALU OR 
-          op = OP_ADDI OR 
-          op = OP_SLTI OR
-          op = OP_ANDI OR
-          op = OP_ORI OR
-          op = OP_XORI OR
-          op = OP_LUI) THEN
-         RETURN true;
-      END IF;
-      
-      RETURN false;
-   END FUNCTION;
-   
-   FUNCTION IS_BRANCH_OP(op : STD_LOGIC_VECTOR(OP_CODE_WIDTH-1 DOWNTO 0)) RETURN BOOLEAN IS
-   BEGIN
-      IF (op = OP_BEQ OR 
-          op = OP_BNE) THEN
-         RETURN true;
-      END IF;
-      
-      RETURN false;
-   END FUNCTION;
-   
-   FUNCTION IS_JUMP_OP(op : STD_LOGIC_VECTOR(OP_CODE_WIDTH-1 DOWNTO 0); funct : STD_LOGIC_VECTOR(ALU_FUNCT_WIDTH-1 DOWNTO 0)) RETURN BOOLEAN IS
-   BEGIN
-      IF (op = OP_J OR 
-          op = OP_JAL OR
-          (op = OP_ALU AND funct = FUNCT_JR)) THEN
-         RETURN true;
-      END IF;
-      
-      RETURN false;
-   END FUNCTION;
-   
    
 END op_codes;

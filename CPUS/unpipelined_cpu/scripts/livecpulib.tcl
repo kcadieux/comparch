@@ -41,20 +41,93 @@ set TARGET_CPU		"cpu"
 
 proc AddWaves {} {
 	global TARGET_CPU
+	
+	;#Define radixes
+	radix define OP_CODE {
+		6'b000000 "ALU",
+		6'b001000 "ADDI",
+		6'b001010 "SLTI",
+		6'b001100 "ANDI",
+		6'b001101 "ORI",
+		6'b001110 "XORI",
+		6'b001111 "LUI",
+		6'b100011 "LW",
+		6'b100000 "LB",
+		6'b101011 "SW",
+		6'b101000 "SB",
+		6'b000100 "BEQ",
+		6'b000101 "BNE",
+		6'b000010 "J",
+		6'b000011 "JAL",
+		6'b010100 "ASRT",
+		6'b010101 "ASRTI"
+		6'b010110 "HALT",
+		-default hex
+	}
+	
+	radix define ALU_FUNCT {
+		6'b100000 "ADD",
+		6'b100010 "SUB",
+		6'b011000 "MULT",
+		6'b011010 "DIV",
+		6'b101010 "SLT",
+		6'b100100 "AND",
+		6'b100101 "OR",
+		6'b100111 "NOR",
+		6'b100110 "XOR",
+		6'b000000 "SLL",
+		6'b000010 "SRL",
+		6'b000011 "SRA",
+		6'b010000 "MFHI",
+		6'b010010 "MFLO",
+		6'b001000 "JR",
+		-default hex
+	}
+	
 
 	;#Add standard waves we might be interested in to the Wave window
 	add wave -position end  sim:/$TARGET_CPU/clk
 	add wave -position end  sim:/$TARGET_CPU/current_state
 	
 	;#IF stage signals
-	add wave -group "IF Stage"  -radix unsigned sim:/$TARGET_CPU/pipe_if.pc\
-								sim:/$TARGET_CPU/pipe_if.instr_ready\
-								sim:/$TARGET_CPU/pipe_if.instr\
-								sim:/$TARGET_CPU/pipe_if.instr_dispatched\
-								sim:/$TARGET_CPU/pipe_if.instr_start_fetch\
-	                            sim:/$TARGET_CPU/pipe_if.mem_tx_ongoing\
-								sim:/$TARGET_CPU/pipe_if.mem_lock\
-								sim:/$TARGET_CPU/pipe_if.mem_address
+	add wave -group "IF Stage"  -radix unsigned sim:/$TARGET_CPU/ifx.pc\
+								sim:/$TARGET_CPU/ifx.instr_ready\
+								-radix binary sim:/$TARGET_CPU/ifx.instr\
+								sim:/$TARGET_CPU/ifx.instr_dispatching\
+								sim:/$TARGET_CPU/ifx.instr_dispatched\
+								sim:/$TARGET_CPU/ifx.instr_start_fetch\
+	                            sim:/$TARGET_CPU/ifx.mem_tx_ongoing\
+								sim:/$TARGET_CPU/ifx.mem_lock\
+								-radix unsigned sim:/$TARGET_CPU/ifx.mem_address
+								
+	;#ID stage signals
+	add wave -group "ID Stage"  -radix unsigned sim:/$TARGET_CPU/id.pc\
+								-radix unsigned sim:/$TARGET_CPU/id.pos\
+								-radix OP_CODE sim:/$TARGET_CPU/id.op\
+								-radix ALU_FUNCT sim:/$TARGET_CPU/id.funct\
+								-radix unsigned sim:/$TARGET_CPU/id.rs_addr\
+								-radix unsigned sim:/$TARGET_CPU/id.rt_addr\
+								-radix unsigned sim:/$TARGET_CPU/id.rd_addr\
+								-radix unsigned sim:/$TARGET_CPU/id.dst_addr\
+								-radix unsigned sim:/$TARGET_CPU/id.result\
+								-radix unsigned sim:/$TARGET_CPU/idx.next_pc\
+								-radix binary sim:/$TARGET_CPU/idx.instr\
+								-radix OP_CODE sim:/$TARGET_CPU/id_opcode\
+								-radix unsigned sim:/$TARGET_CPU/id_rs\
+								-radix unsigned sim:/$TARGET_CPU/id_rt\
+								-radix unsigned sim:/$TARGET_CPU/id_rd\
+								-radix unsigned sim:/$TARGET_CPU/id_shamt\
+								-radix ALU_FUNCT sim:/$TARGET_CPU/id_funct\
+								-radix unsigned sim:/$TARGET_CPU/id_imm\
+								-radix decimal sim:/$TARGET_CPU/id_imm_sign_ext\
+								-radix unsigned sim:/$TARGET_CPU/id_imm_zero_ext\
+								-radix unsigned sim:/$TARGET_CPU/id_branch_addr\
+								-radix unsigned sim:/$TARGET_CPU/id_jump_addr\
+								sim:/$TARGET_CPU/idx.is_stalled\
+								sim:/$TARGET_CPU/idx.branch_requested\
+	                            sim:/$TARGET_CPU/idx.branch_addr\
+								sim:/$TARGET_CPU/idx.forward_rs\
+								sim:/$TARGET_CPU/idx.forward_rt
 								
 	;#Register file signals
 	add wave -group Registers   -radix unsigned sim:/$TARGET_CPU/reg_read1_addr\
@@ -69,7 +142,7 @@ proc AddWaves {} {
 	add wave -group ALU  		-radix decimal  sim:/$TARGET_CPU/alu_a\
 								-radix decimal  sim:/$TARGET_CPU/alu_a\
 								-radix decimal  sim:/$TARGET_CPU/alu_b\
-								-radix hex      sim:/$TARGET_CPU/alu_funct\
+								-radix ALU_FUNCT sim:/$TARGET_CPU/alu_funct\
 								-radix unsigned sim:/$TARGET_CPU/alu_shamt\
 								-radix decimal  sim:/$TARGET_CPU/alu_result
 	
@@ -108,7 +181,7 @@ proc CompileCPU {} {
     CompileComponent Main_Memory
     CompileComponent register_file
     CompileComponent instr_decoder
-	CompileComponent cpu_types
+	CompileComponent cpu_lib
     CompileComponent cpu
 }
 
@@ -260,7 +333,7 @@ proc AssembleTest {testName} {
 	return 0
 }
 
-proc RunTest {testName} {
+proc InitTest {testName} {
 	global TEST_FOLDER
 	global TARGET_CPU
 
@@ -273,6 +346,12 @@ proc RunTest {testName} {
 	}
 	
 	InitCPU "$TEST_FOLDER/$testName"
+}
+
+proc RunTest {testName} {
+	global TARGET_CPU
+
+	InitTest $testName
 	
 	when -label test_prog {/unpipelined_cpu/finished_prog == '1' || /unpipelined_cpu/assertion == '1'} {
 		stop

@@ -40,9 +40,9 @@ ARCHITECTURE rtl OF register_file IS
    TYPE REG_ARRAY IS ARRAY(1 TO 2**REG_ADDR_WIDTH-1) OF STD_LOGIC_VECTOR(REG_DATA_WIDTH-1 DOWNTO 0);
    SIGNAL regs             : REG_ARRAY;
    
-   SIGNAL read1_addr_n     : NATURAL;
-   SIGNAL read2_addr_n     : NATURAL;
-   SIGNAL write_addr_n     : NATURAL;
+   SIGNAL read1_addr_n     : NATURAL         := 0;
+   SIGNAL read2_addr_n     : NATURAL         := 0;
+   SIGNAL write_addr_n     : NATURAL         := 0;
    
 BEGIN
    

@@ -17,7 +17,7 @@ use ieee.numeric_std.all; -- allows use of the unsigned type
 use work.architecture_constants.all;
 use work.op_codes.all;
 use work.alu_codes.all;
-use work.cpu_types.all;
+use work.cpu_lib.all;
 
 ENTITY cpu IS
    
@@ -25,7 +25,7 @@ ENTITY cpu IS
       File_Address_Read    : STRING    := "Init.dat";
       File_Address_Write   : STRING    := "MemCon.dat";
       Mem_Size_in_Word     : INTEGER   := 256;
-      Read_Delay           : INTEGER   := 3; 
+      Read_Delay           : INTEGER   := 0; 
       Write_Delay          : INTEGER   := 0
    );
    PORT (
@@ -98,13 +98,16 @@ ARCHITECTURE rtl OF cpu IS
    SIGNAL reg_write_data   : STD_LOGIC_VECTOR(REG_DATA_WIDTH-1 DOWNTO 0)   := (others => '0');
    
    
+   SIGNAL id               : PIPE_REG              := DEFAULT_PIPE_REG;
+   SIGNAL ex               : PIPE_REG              := DEFAULT_PIPE_REG;
+   SIGNAL mem              : PIPE_REG              := DEFAULT_PIPE_REG;
+   SIGNAL wb               : PIPE_REG              := DEFAULT_PIPE_REG;
    
-   SIGNAL pipe_if          : PIPELINE_INFO_IF      := DEFAULT_IF;
-   SIGNAL pipe_id          : PIPELINE_INFO_ID      := DEFAULT_ID;
-   SIGNAL pipe_ex          : PIPELINE_INFO_EX      := DEFAULT_EX;
-   SIGNAL pipe_mem         : PIPELINE_INFO_MEM     := DEFAULT_MEM;
-   SIGNAL pipe_wb          : PIPELINE_INFO_WB      := DEFAULT_WB;
-   
+   SIGNAL ifx              : PIPELINE_INFO_IF      := DEFAULT_IF;
+   SIGNAL idx              : PIPELINE_INFO_ID      := DEFAULT_ID;
+   SIGNAL exx              : PIPELINE_INFO_EX      := DEFAULT_EX;
+   SIGNAL memx             : PIPELINE_INFO_MEM     := DEFAULT_MEM;
+   SIGNAL wbx              : PIPELINE_INFO_WB      := DEFAULT_WB;
    
 BEGIN
    
@@ -131,8 +134,8 @@ BEGIN
    
    instruction_decoder : ENTITY work.instr_decoder
       PORT MAP (
-         instr          => pipe_id.instr,
-         next_pc        => pipe_id.next_pc,
+         instr          => idx.instr,
+         next_pc        => idx.next_pc,
          
          opcode         => id_opcode,
          
@@ -178,28 +181,48 @@ BEGIN
       );
       
    
+   fsm : PROCESS (clk, current_state)
+   BEGIN
+      IF (clk'event AND clk = '1') THEN
+         CASE current_state IS
+            WHEN INITIAL =>
+               current_state <= RUNNING;
+            WHEN OTHERS =>
+         END CASE;
+      END IF;
+   END PROCESS;
+   
+   state_ctrl  : PROCESS (current_state)
+   BEGIN
+      mem_initialize <= reset;
+      CASE current_state IS
+         WHEN INITIAL =>
+            mem_initialize <= '1';
+         WHEN OTHERS =>
+      END CASE;
+   END PROCESS;
+   
       
-      
-   memory_ctrl    : PROCESS (pipe_if, pipe_mem, live_mode)
+   memory_ctrl    : PROCESS (ifx, memx, live_mode)
    BEGIN
       mem_re         <= '0';
       mem_we         <= '0';
       mem_address    <= 0;
       mem_data       <= (others => 'Z');
       mem_word_byte  <= '1';
-      mem_initialize <= reset;
    
-      IF (pipe_mem.mem_lock = '0' AND live_mode = '0') THEN
+      IF (memx.mem_lock = '0' AND live_mode = '0' AND 
+          (ifx.instr_start_fetch = '1' OR ifx.mem_tx_ongoing = '1')) THEN
          mem_re         <= '1';
          mem_word_byte  <= '1';
-         mem_address    <= pipe_if.mem_address;
+         mem_address    <= ifx.mem_address;
      
-      ELSIF (pipe_mem.mem_lock = '1') THEN
-         mem_re         <= pipe_mem.mem_read;
-         mem_we         <= NOT pipe_mem.mem_read;
-         mem_word_byte  <= pipe_mem.mem_word_byte;
-         mem_address    <= pipe_mem.mem_address;
-         mem_data       <= pipe_mem.mem_data;
+      ELSIF (memx.mem_lock = '1') THEN
+         mem_re         <= memx.mem_read;
+         mem_we         <= NOT memx.mem_read;
+         mem_word_byte  <= memx.mem_word_byte;
+         mem_address    <= memx.mem_address;
+         mem_data       <= memx.mem_data;
      
       END IF;
    
@@ -208,61 +231,64 @@ BEGIN
    ---------------------------------------------------------------------------------------------------------------------------
    -- FETCH STAGE
    ---------------------------------------------------------------------------------------------------------------------------
-   pipeline_fetch : PROCESS (clk, mem_rd_ready, mem_data, pipe_if, pipe_id, pipe_mem, live_instr, live_mode)
+   pipeline_fetch : PROCESS (clk, mem_rd_ready, mem_data, ifx, id, idx, mem, memx, live_instr, live_mode)
    BEGIN
    
-      finished_instr             <= pipe_if.instr_start_fetch;
-      pipe_if.mem_lock           <= pipe_if.mem_tx_ongoing AND NOT mem_rd_ready AND NOT live_mode AND NOT pipe_id.branch_requested;
-      pipe_if.instr_dispatching  <= NOT pipe_id.is_stalled AND ((pipe_if.mem_tx_ongoing AND (mem_rd_ready OR live_mode)) OR pipe_if.instr_ready);
-      pipe_if.instr_start_fetch  <= NOT pipe_mem.mem_lock AND (pipe_if.instr_dispatching OR pipe_if.instr_dispatched OR pipe_id.branch_requested);
+      finished_instr         <= ifx.instr_start_fetch;
+      ifx.mem_lock           <= ifx.mem_tx_ongoing AND NOT mem_rd_ready AND NOT live_mode AND NOT idx.branch_requested;
+      ifx.instr_dispatching  <= NOT idx.is_stalled AND ((ifx.mem_tx_ongoing AND (mem_rd_ready OR live_mode)) OR ifx.instr_ready);
+      ifx.instr_start_fetch  <= NOT memx.mem_lock AND (ifx.instr_dispatching OR ifx.instr_dispatched OR idx.branch_requested);
    
-      pipe_if.mem_address        <= pipe_if.pc;
-      IF (pipe_if.instr_start_fetch = '1') THEN
-         pipe_if.mem_address     <= pipe_if.pc + 4;
-      ELSIF (pipe_id.branch_requested = '1') THEN
-         pipe_if.mem_address     <= pipe_id.branch_addr;
-      END IF;
+      ifx.mem_address        <= ifx.pc;
+      IF (idx.branch_requested = '1') THEN
+         ifx.mem_address     <= idx.branch_addr;
+      ELSIF (ifx.instr_start_fetch = '1') THEN
+         ifx.mem_address     <= ifx.pc + 4;
+      END IF; 
    
       IF (clk'event AND clk = '1') THEN
          
-         pipe_if.mem_tx_ongoing     <= pipe_if.mem_lock;
-         pipe_if.instr_dispatched   <= pipe_if.instr_dispatched OR pipe_if.instr_dispatching;
+         ifx.mem_tx_ongoing     <= ifx.mem_lock;
+         ifx.instr_dispatched   <= ifx.instr_dispatched OR ifx.instr_dispatching;
          
-         pipe_id                    <= DEFAULT_ID;
-         pipe_id.pc                 <= pipe_if.pc;
+         IF (idx.is_stalled = '0') THEN
+            id.pc               <= ifx.pc;
+            id.pos              <= POS_ID;
+            idx.instr           <= (others => '0');
+         END IF;
       
          --If current memory transaction is done...
-         IF (pipe_if.mem_tx_ongoing = '1' AND ((mem_rd_ready = '1' AND pipe_id.branch_requested = '0') OR live_mode = '1')) THEN
-            IF (pipe_id.is_stalled = '0') THEN
-               pipe_id.instr           <= mem_data;
+         IF (ifx.mem_tx_ongoing = '1' AND ((mem_rd_ready = '1' AND idx.branch_requested = '0') OR live_mode = '1')) THEN
+            IF (idx.is_stalled = '0') THEN
+               idx.instr           <= mem_data;
                
                IF (live_mode = '1') THEN
-                  pipe_id.instr        <= live_instr;
+                  idx.instr        <= live_instr;
                END IF;
             ELSE
                --Save instruction for when the ID stage will unstall
-               pipe_if.instr           <= mem_data;
-               pipe_if.instr_ready     <= '1';
+               ifx.instr           <= mem_data;
+               ifx.instr_ready     <= '1';
                
                IF (live_mode = '1') THEN
-                  pipe_if.instr        <= live_instr;
+                  ifx.instr        <= live_instr;
                END IF;
             END IF;
          END IF;
          
-         IF (pipe_if.instr_ready = '1' AND pipe_id.is_stalled = '0') THEN
-            pipe_id.instr              <= pipe_if.instr;
-            pipe_if.instr_ready        <= '0';
+         IF (ifx.instr_ready = '1' AND idx.is_stalled = '0' AND idx.branch_requested = '0') THEN
+            idx.instr              <= ifx.instr;
          END IF;
          
-         IF (pipe_if.instr_start_fetch = '1') THEN
-            pipe_if.mem_tx_ongoing     <= '1';
-            pipe_if.instr_dispatched   <= '0';
+         IF (ifx.instr_start_fetch = '1') THEN
+            ifx.mem_tx_ongoing     <= '1';
+            ifx.instr_dispatched   <= '0';
+            ifx.instr_ready        <= '0';
             
-            IF (live_mode = '0') THEN
-               pipe_if.pc              <= pipe_if.pc + 4;
-            ELSIF (pipe_id.branch_requested = '1') THEN
-               pipe_if.pc              <= pipe_id.branch_addr + 4;
+            IF (idx.branch_requested = '1') THEN
+               ifx.pc              <= idx.branch_addr;
+            ELSIF (live_mode = '0') THEN
+               ifx.pc              <= ifx.pc + 4;
             END IF;
          END IF;
          
@@ -272,92 +298,104 @@ BEGIN
    ---------------------------------------------------------------------------------------------------------------------------
    -- DECODE STAGE
    ---------------------------------------------------------------------------------------------------------------------------
-   pipeline_decode    : PROCESS (clk, pipe_id, pipe_ex, pipe_mem, id_opcode, id_rs, id_rt, id_rd, id_funct, id_shamt,
-                                 id_imm, id_imm_sign_ext, id_imm_zero_ext, id_branch_addr, id_jump_addr,
+   pipeline_decode    : PROCESS (clk, id, idx, ex, exx, mem, memx, id_opcode, id_rs, id_rt, id_rd, id_funct, id_shamt,
+                                 id_imm, id_imm_sign_ext, id_imm_zero_ext, id_branch_addr, id_jump_addr, id_instr,
                                  reg_read1_data, reg_read2_data)
    BEGIN
       
-      pipe_id.next_pc                    <= pipe_id.pc;
-      pipe_id.is_stalled                 <= pipe_ex.is_stalled;
+      -- Fill in the common pipe register info for the instruction
+      idx.next_pc             <= id.pc + 4;
       
-      IF (id_opcode = OP_BEQ OR id_opcode = OP_BNE OR (id_opcode = OP_ALU AND id_funct = FUNCT_JR)) THEN
+      id.op                   <= id_opcode;
+      id.funct                <= id_funct;
       
-         --Detect stalling data dependence 1 instruction back
-         IF ((pipe_ex.opcode = OP_ALU OR pipe_ex.opcode = OP_LB OR pipe_ex.opcode = OP_LW) AND 
-             ((pipe_ex.reg_address = id_rs AND id_rs /= ZERO_REG) OR (pipe_ex.reg_address = id_rt AND id_rt /= ZERO_REG))) THEN
-            pipe_id.is_stalled   <= '1';
-         END IF;
-         
-         --Detect stalling data dependence 2 instructions back
-         IF ((pipe_mem.opcode = OP_LW OR pipe_mem.opcode = OP_LB) AND
-             ((pipe_mem.reg_address = id_rs AND id_rs /= ZERO_REG) OR (pipe_mem.reg_address = id_rt AND id_rt /= ZERO_REG))) THEN
-            pipe_id.is_stalled   <= '1';
-            
-         END IF;
-      END IF;
+      id.rs_addr              <= id_rs;
+      id.rt_addr              <= id_rt;
+      id.rd_addr              <= id_rd;
       
-      pipe_id.branch_requested      <= '0';
-      IF (pipe_id.is_stalled = '0' AND (IS_BRANCH_OP(id_opcode) OR IS_JUMP_OP(id_opcode, id_funct))) THEN
-         pipe_id.branch_requested   <= '1';
-      END IF;
+      id.dst_addr             <= GET_DST_ADDR(id);
       
-      pipe_id.branch_rs_dd_exists   <= '0';
-      IF (IS_ALU_OP(pipe_mem.opcode) AND pipe_mem.reg_address = id_rs AND id_rs /= ZERO_REG) THEN
-         pipe_id.branch_rs_dd_exists   <= '1';
-      END IF;
-      
-      pipe_id.branch_rt_dd_exists   <= '0';
-      IF (IS_ALU_OP(pipe_mem.opcode) AND pipe_mem.reg_address = id_rt AND id_rt /= ZERO_REG) THEN
-         pipe_id.branch_rt_dd_exists   <= '1';
-      END IF;
-      
-      pipe_id.branch_addr           <= pipe_id.next_pc;
-      IF ((pipe_id.branch_requested = '1' AND pipe_id.branch_rs_dd_exists = '0' AND pipe_id.branch_rt_dd_exists = '0' AND id_opcode = OP_BEQ AND reg_read1_data =  reg_read2_data) OR
-          (pipe_id.branch_requested = '1' AND pipe_id.branch_rs_dd_exists = '0' AND pipe_id.branch_rt_dd_exists = '0' AND id_opcode = OP_BNE AND reg_read1_data /= reg_read2_data) OR
-          (pipe_id.branch_requested = '1' AND pipe_id.branch_rs_dd_exists = '1' AND pipe_id.branch_rt_dd_exists = '0' AND id_opcode = OP_BEQ AND pipe_mem.reg_data =  reg_read2_data) OR
-          (pipe_id.branch_requested = '1' AND pipe_id.branch_rs_dd_exists = '1' AND pipe_id.branch_rt_dd_exists = '0' AND id_opcode = OP_BNE AND pipe_mem.reg_data /= reg_read2_data) OR
-          (pipe_id.branch_requested = '1' AND pipe_id.branch_rs_dd_exists = '0' AND pipe_id.branch_rt_dd_exists = '1' AND id_opcode = OP_BEQ AND reg_read1_data =  pipe_mem.reg_data) OR
-          (pipe_id.branch_requested = '1' AND pipe_id.branch_rs_dd_exists = '0' AND pipe_id.branch_rt_dd_exists = '1' AND id_opcode = OP_BNE AND reg_read1_data /= pipe_mem.reg_data)) THEN
-         pipe_id.branch_addr        <= to_integer(unsigned(id_branch_addr));
-      END IF;
-      
-      IF (pipe_id.branch_requested = '1' AND IS_JUMP_OP(id_opcode, id_funct)) THEN
-         pipe_id.branch_addr  <= to_integer(unsigned(id_jump_addr));
-         
-         IF (id_opcode = OP_ALU AND id_funct = FUNCT_JR AND pipe_id.branch_rs_dd_exists = '1') THEN
-            pipe_id.branch_addr  <= to_integer(unsigned(pipe_mem.reg_data));
-         ELSIF (id_opcode = OP_ALU AND id_funct = FUNCT_JR) THEN
-            pipe_id.branch_addr  <= to_integer(unsigned(reg_read1_data));
-         END IF;
-      END IF;
+      idx.is_stalled          <= exx.is_stalled;
+      idx.branch_requested    <= '0';
+      idx.forward_rs          <= false;
+      idx.forward_rt          <= false;
       
       reg_read1_addr <= id_rs;
       reg_read2_addr <= id_rt;
       
-      IF (clk'event AND clk = '1') THEN
-      
-         pipe_ex     <= DEFAULT_EX;
+      IF (READS_DURING_ID(id)) THEN  --Implies that this is a branch or jump instr if true
          
-         IF (pipe_id.is_stalled = '0') THEN
-            pipe_ex.opcode          <= id_opcode;
-            pipe_ex.rs_val          <= reg_read1_data;
-            pipe_ex.rt_val          <= reg_read2_data;
-            pipe_ex.imm             <= id_imm;
-            pipe_ex.imm_sign_ext    <= id_imm_sign_ext;
-            pipe_ex.imm_zero_ext    <= id_imm_zero_ext;
-            pipe_ex.alu_shamt       <= id_shamt;
-            pipe_ex.alu_funct       <= id_funct;
-            pipe_ex.reg_address     <= ZERO_REG;
+         IF    (DD_STALL(id, ex))  THEN idx.is_stalled <= '1';
+         ELSIF (DD_STALL(id, mem)) THEN idx.is_stalled <= '1';
+         END IF;
+         
+         IF (idx.is_stalled = '0') THEN 
+            idx.branch_requested <= '1'; 
+            idx.forward_rs       <= HAS_DD_RS(id, mem);
+            idx.forward_rt       <= HAS_DD_RT(id, mem);
             
-            --TODO: Move to EX stage
-            IF (id_opcode = OP_ALU OR IS_JUMP_OP(id_opcode, id_funct)) THEN
-               pipe_ex.reg_address  <= id_rd;
-            ELSIF (IS_ALU_OP(id_opcode)) THEN
-               --We have some sort of immediate instr, so use rt as destination reg
-               pipe_ex.reg_address  <= id_rt;
+            IF ((NOT idx.forward_rs AND NOT idx.forward_rt AND id_opcode = OP_BEQ AND reg_read1_data =  reg_read2_data) OR
+                (NOT idx.forward_rs AND NOT idx.forward_rt AND id_opcode = OP_BNE AND reg_read1_data /= reg_read2_data) OR
+                (    idx.forward_rs AND NOT idx.forward_rt AND id_opcode = OP_BEQ AND mem.result     =  reg_read2_data) OR
+                (    idx.forward_rs AND NOT idx.forward_rt AND id_opcode = OP_BNE AND mem.result     /= reg_read2_data) OR
+                (NOT idx.forward_rs AND     idx.forward_rt AND id_opcode = OP_BEQ AND reg_read1_data =  mem.result) OR
+                (NOT idx.forward_rs AND     idx.forward_rt AND id_opcode = OP_BNE AND reg_read1_data /= mem.result)) THEN
+                
+               idx.branch_addr        <= to_integer(unsigned(id_branch_addr));
+            END IF;
+            
+            IF    (id.op = OP_J OR id.op = OP_JAL)          THEN idx.branch_addr <= to_integer(unsigned(id_jump_addr));
+            ELSIF (id.op = OP_ALU AND id.funct = FUNCT_JR)  THEN
+               IF (idx.forward_rs)                          THEN idx.branch_addr <= to_integer(unsigned(mem.result));
+               ELSE                                              idx.branch_addr <= to_integer(unsigned(reg_read1_data));
+               END IF;
             END IF;
          END IF;
+
+      END IF;
+      
+      IF (clk'event AND clk = '1') THEN
+      
+         IF (exx.is_stalled = '0' AND idx.is_stalled = '1') THEN
+            ex     <= DEFAULT_PIPE_REG;
+            exx    <= DEFAULT_EX;
+         END IF;
+         
+         IF (idx.is_stalled = '0') THEN
+            
+            ex                  <= id;
+            ex.pos              <= id.pos + 1;
+            
+            exx.rs_val          <= reg_read1_data;
+            exx.rt_val          <= reg_read2_data;
+            
+            exx.imm             <= id_imm;
+            exx.imm_sign_ext    <= id_imm_sign_ext;
+            exx.imm_zero_ext    <= id_imm_zero_ext;
+            exx.alu_shamt       <= id_shamt;
+            exx.alu_funct       <= id_funct;
+            
+         END IF;
        
+      END IF;
+      
+   
+   END PROCESS;
+   
+   
+   ---------------------------------------------------------------------------------------------------------------------------
+   -- EXECUTION STAGE
+   ---------------------------------------------------------------------------------------------------------------------------
+   pipeline_execute : PROCESS (clk, ex, exx, mem, memx, wb, wbx)
+   BEGIN
+   
+      
+      
+      
+      
+   
+      IF (clk'event AND clk = '1') THEN
+         
       END IF;
    
    END PROCESS;
