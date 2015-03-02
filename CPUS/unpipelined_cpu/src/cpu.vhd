@@ -25,7 +25,7 @@ ENTITY cpu IS
       File_Address_Read    : STRING    := "Init.dat";
       File_Address_Write   : STRING    := "MemCon.dat";
       Mem_Size_in_Word     : INTEGER   := 256;
-      Read_Delay           : INTEGER   := 3; 
+      Read_Delay           : INTEGER   := 0; 
       Write_Delay          : INTEGER   := 0
    );
    PORT (
@@ -469,21 +469,19 @@ BEGIN
    BEGIN
    
       mem_i.mem_tx_done <= '0';
-      IF    (IS_LOAD_OP(mem)  AND mm_rd_ready = '1') THEN mem_i.mem_tx_done <= '1';
-      ELSIF (IS_STORE_OP(mem) AND mm_wr_done  = '1') THEN mem_i.mem_tx_done <= '1';
+      IF    (IS_LOAD_OP(mem) AND mem_i.mem_tx_ongoing = '1' AND mm_rd_ready = '1') THEN mem_i.mem_tx_done <= '1';
+      ELSIF (IS_STORE_OP(mem) AND mem_i.mem_tx_ongoing = '1' AND mm_wr_done  = '1') THEN mem_i.mem_tx_done <= '1';
       END IF;
    
-      mem_i.is_stalled  <= '0';
-      IF (IS_MEM_OP(mem) AND (mem_i.mem_lock = '1' OR (if_i.mem_lock = '1' AND mem_i.mem_tx_ongoing = '0'))) THEN
-         mem_i.is_stalled  <= '1';
+      --Manage memory lock requests. Loads will request the lock 1 cycle longer
+      --in order to have the time to read the data from the memory data lines.
+      mem_i.mem_request_lock  <= '0';
+      IF (IS_MEM_OP(mem)) THEN
+         mem_i.mem_request_lock <= '1'; 
       END IF;
       
-      mem_i.mem_lock    <= '0';
-      IF (mem_i.mem_tx_ongoing = '1') THEN
-         mem_i.mem_lock <= NOT mem_i.mem_tx_done;
-      ELSIF (IS_MEM_OP(mem)) THEN
-         mem_i.mem_lock <=  NOT if_i.mem_lock;
-      END IF;
+      mem_i.is_stalled  <= mem_i.mem_request_lock AND NOT mem_i.mem_tx_done;
+      mem_i.mem_lock    <= mem_i.mem_request_lock AND NOT if_i.mem_lock;
       
       mem_i.mm_read <= '0';
       IF (IS_LOAD_OP(mem)) THEN
@@ -499,26 +497,32 @@ BEGIN
       
       mem_i.mm_data <= (others => 'Z');
       IF (IS_STORE_OP(mem)) THEN
-         mem_i.mm_data <= mem_i.rt_fwd_val;
-      END IF;
-     
-      --Handle the case when a store depends on the previous instruction
-      mem_i.rt_fwd_val     <= memx.rt_val;
-      IF (HAS_DD_RT(mem, wb)) THEN
-         mem_i.rt_fwd_val  <= wb.result;
+         IF    (HAS_DD_RT(mem, wb))    THEN mem_i.mm_data <= wb.result;
+         ELSIF (mem_i.has_dd_rt = '1') THEN mem_i.mm_data <= mem_i.rt_fwd_val;
+         ELSE mem_i.mm_data <= memx.rt_val; 
+         END IF;
       END IF;
       
       IF (clk'event AND clk = '1') THEN
-         
-         
-         
+ 
+         --Handle the case when a store depends on the previous instruction
+         --Save the forwarded value before write back leaves the pipeline
+         IF (HAS_DD_RT(mem, wb)) THEN
+            mem_i.rt_fwd_val    <= wb.result;
+            mem_i.has_dd_rt     <= '1';
+         END IF;
+ 
          mem_i.mem_tx_ongoing <= '0';
          IF (mem_i.mem_lock = '1') THEN
             mem_i.mem_tx_ongoing <= '1';
          END IF;
+         
+         IF (mem_i.mem_tx_ongoing = '1' AND mem_i.mem_tx_done = '1') THEN
+            mem_i.mem_tx_ongoing <= '0';
+            mem_i.has_dd_rt      <= '0';
+         END IF;
  
- 
-         IF (mem_i.is_stalled = '1') THEN
+         IF (mem_i.is_stalled = '1' AND mem_i.mem_tx_done = '0') THEN
             wb    <= DEFAULT_PIPE_REG;
          ELSE
             wb                 <= mem;
