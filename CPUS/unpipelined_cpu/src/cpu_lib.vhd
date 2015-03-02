@@ -92,10 +92,11 @@ PACKAGE cpu_lib IS
       pc                   : NATURAL;
       instr_ready          : STD_LOGIC;
       instr                : STD_LOGIC_VECTOR(INSTR_WIDTH-1 DOWNTO 0);
-      instr_dispatched     : STD_LOGIC;
-      instr_dispatching    : STD_LOGIC;
-      instr_start_fetch    : STD_LOGIC;
+      instr_selection      : STD_LOGIC_VECTOR(INSTR_WIDTH-1 DOWNTO 0);
+      mem_is_free          : STD_LOGIC;
+      can_issue            : STD_LOGIC;
       mem_tx_ongoing       : STD_LOGIC;
+      mem_tx_complete      : STD_LOGIC;
       mem_lock             : STD_LOGIC;
       mm_address           : NATURAL;
    END RECORD;
@@ -104,10 +105,11 @@ PACKAGE cpu_lib IS
       pc                   => 0,
       instr_ready          => '0',
       instr                => (others => '0'),
-      instr_dispatched     => '0',
-      instr_dispatching    => '0',
-      instr_start_fetch    => '1',
+      instr_selection      => (others => '0'),
+      mem_is_free          => '0',
+      can_issue            => '0',
       mem_tx_ongoing       => '1',
+      mem_tx_complete      => '0',
       mem_lock             => '0',
       mm_address           => 0
    );
@@ -145,6 +147,7 @@ PACKAGE cpu_lib IS
    TYPE MEM_INTERNAL IS RECORD
       is_stalled           : STD_LOGIC;
       mem_lock             : STD_LOGIC;
+      mem_request_lock     : STD_LOGIC;
       mem_tx_ongoing       : STD_LOGIC;
       mem_tx_done          : STD_LOGIC;
       mm_read              : STD_LOGIC;
@@ -157,6 +160,7 @@ PACKAGE cpu_lib IS
    CONSTANT DEFAULT_MEM_INTERNAL : MEM_INTERNAL := (
       is_stalled           => '0',
       mem_lock             => '0',
+      mem_request_lock     => '0',
       mem_tx_ongoing       => '0',
       mem_tx_done          => '0',
       mm_read              => '0',

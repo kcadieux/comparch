@@ -25,7 +25,7 @@ ENTITY cpu IS
       File_Address_Read    : STRING    := "Init.dat";
       File_Address_Write   : STRING    := "MemCon.dat";
       Mem_Size_in_Word     : INTEGER   := 256;
-      Read_Delay           : INTEGER   := 0; 
+      Read_Delay           : INTEGER   := 3; 
       Write_Delay          : INTEGER   := 0
    );
    PORT (
@@ -195,7 +195,7 @@ BEGIN
       END IF;
    END PROCESS;
    
-   state_ctrl  : PROCESS (current_state)
+   state_ctrl  : PROCESS (current_state, reset)
    BEGIN
       mm_initialize <= reset;
       CASE current_state IS
@@ -214,8 +214,7 @@ BEGIN
       mm_data       <= (others => 'Z');
       mm_word_byte  <= '1';
    
-      IF (mem_i.mem_lock = '0' AND live_mode = '0' AND 
-          (if_i.instr_start_fetch = '1' OR if_i.mem_tx_ongoing = '1')) THEN
+      IF (if_i.mem_lock = '1') THEN
          mm_re         <= '1';
          mm_word_byte  <= '1';
          mm_address    <= if_i.mm_address;
@@ -225,17 +224,7 @@ BEGIN
          mm_we         <= NOT mem_i.mm_read;
          mm_word_byte  <= mem_i.mm_word_byte;
          mm_address    <= mem_i.mm_address;
-         
-         IF (mem_i.mm_read = '0') THEN
-            mm_data    <= mem_i.mm_data;
-         END IF;
-     
-      END IF;
-      
-      IF (clk'event AND clk = '1') THEN
-         IF (mem_i.mem_lock = '1') THEN
-            mm_data    <= mem_i.mm_data;
-         END IF;
+         mm_data    <= mem_i.mm_data;
       END IF;
    
    END PROCESS;
@@ -243,65 +232,66 @@ BEGIN
    ---------------------------------------------------------------------------------------------------------------------------
    -- FETCH STAGE
    ---------------------------------------------------------------------------------------------------------------------------
-   pipeline_fetch : PROCESS (clk, mm_rd_ready, mm_data, live_instr, live_mode, if_i, id_i)
+   pipeline_fetch : PROCESS (clk, mm_rd_ready, mm_data, live_instr, live_mode, if_i, id_i, mem_i)
    BEGIN
+      finished_instr          <= if_i.mem_is_free;
    
-      finished_instr          <= if_i.instr_start_fetch;
-      if_i.mem_lock           <= if_i.mem_tx_ongoing AND NOT mm_rd_ready AND NOT live_mode AND NOT id_i.branch_requested;
-      if_i.instr_dispatching  <= NOT id_i.is_stalled AND ((if_i.mem_tx_ongoing AND (mm_rd_ready OR live_mode)) OR if_i.instr_ready);
-      if_i.instr_start_fetch  <= NOT mem_i.mem_lock AND (if_i.instr_dispatching OR if_i.instr_dispatched OR id_i.branch_requested);
+      --Lock memory if either no request is coming from the MEM stage,
+      --or if a current memory transaction is ongoing and we need to finish it.
+      if_i.mem_lock           <= if_i.mem_tx_ongoing OR NOT mem_i.mem_request_lock;
+      if_i.mem_tx_complete    <= if_i.mem_tx_ongoing AND mm_rd_ready;
+      
+      if_i.can_issue          <= NOT id_i.is_stalled AND NOT id_i.branch_requested;
+      if_i.mem_is_free        <= (if_i.mem_tx_complete OR NOT if_i.mem_tx_ongoing) AND NOT mem_i.mem_request_lock; 
    
-      if_i.mm_address        <= if_i.pc;
-      IF (id_i.branch_requested = '1') THEN
-         if_i.mm_address     <= id_i.branch_addr;
-      ELSIF (if_i.instr_start_fetch = '1') THEN
-         if_i.mm_address     <= if_i.pc + 4;
-      END IF; 
+      if_i.mm_address         <= if_i.pc;
+      IF    id_i.branch_requested = '1' THEN if_i.mm_address <= id_i.branch_addr;
+      ELSIF if_i.mem_is_free = '1' AND if_i.can_issue = '1'  THEN if_i.mm_address <= if_i.pc + 4;
+      END IF;
+      
+      --Select the instruction source depending on we are
+      --in live mode or if we already have an instr in our buffer
+      if_i.instr_selection    <= mm_data;
+      IF (live_mode = '1') THEN
+         if_i.instr_selection <= live_instr;
+      ELSIF (if_i.instr_ready = '1') THEN
+         if_i.instr_selection <= if_i.instr;
+      END IF;
    
       IF (clk'event AND clk = '1') THEN
          
-         if_i.mem_tx_ongoing     <= if_i.mem_lock;
-         if_i.instr_dispatched   <= if_i.instr_dispatched OR if_i.instr_dispatching;
-         
          IF (id_i.is_stalled = '0') THEN
-            id.pc                <= if_i.pc;
-            id.pos               <= POS_ID;
-            idx.instr            <= (others => '0');
+            idx   <= DEFAULT_ID;
          END IF;
-      
-         --If current memory transaction is done...
-         IF (if_i.mem_tx_ongoing = '1' AND ((mm_rd_ready = '1' AND id_i.branch_requested = '0') OR live_mode = '1')) THEN
-            IF (id_i.is_stalled = '0') THEN
-               idx.instr           <= mm_data;
-               
-               IF (live_mode = '1') THEN
-                  idx.instr        <= live_instr;
-               END IF;
+         
+         --Fetch complete, either issue immediately, or store for when ID unstalls
+         IF (if_i.mem_tx_complete = '1' OR live_mode = '1' OR if_i.instr_ready = '1') THEN
+            if_i.mem_tx_ongoing     <= '0';
+         
+            IF (if_i.can_issue = '1') THEN
+               id.pc                <= if_i.pc;
+               id.pos               <= POS_ID;
+               idx.instr            <= if_i.instr_selection;
             ELSE
-               --Save instruction for when the ID stage will unstall
-               if_i.instr           <= mm_data;
+               if_i.instr           <= if_i.instr_selection;
                if_i.instr_ready     <= '1';
-               
-               IF (live_mode = '1') THEN
-                  if_i.instr        <= live_instr;
-               END IF;
             END IF;
          END IF;
          
-         IF (if_i.instr_ready = '1' AND id_i.is_stalled = '0' AND id_i.branch_requested = '0') THEN
-            idx.instr               <= if_i.instr;
-         END IF;
-         
-         IF (if_i.instr_start_fetch = '1') THEN
-            if_i.mem_tx_ongoing     <= '1';
-            if_i.instr_dispatched   <= '0';
-            if_i.instr_ready        <= '0';
+         --Start fetching an instruction
+         IF (live_mode = '1') THEN
+            if_i.instr_ready     <= '0';
+         ELSIF (id_i.branch_requested = '1') THEN
+            if_i.pc              <= id_i.branch_addr;
+            if_i.instr_ready     <= '0';
             
-            IF (id_i.branch_requested = '1') THEN
-               if_i.pc              <= id_i.branch_addr;
-            ELSIF (live_mode = '0') THEN
-               if_i.pc              <= if_i.pc + 4;
+            IF (if_i.mem_is_free = '1') THEN
+               if_i.mem_tx_ongoing  <= '1';
             END IF;
+            
+         ELSIF (if_i.mem_is_free = '1' and if_i.can_issue = '1') THEN
+            if_i.pc              <= if_i.pc + 4;
+            if_i.mem_tx_ongoing  <= '1';
          END IF;
          
       END IF;
@@ -310,7 +300,7 @@ BEGIN
    ---------------------------------------------------------------------------------------------------------------------------
    -- DECODE STAGE
    ---------------------------------------------------------------------------------------------------------------------------
-   pipeline_decode    : PROCESS (clk, id, idx, id_i, ex_i, mem, dec_opcode, dec_rs, dec_rt, dec_rd, dec_funct, dec_shamt,
+   pipeline_decode    : PROCESS (clk, id, idx, id_i, ex, ex_i, mem, dec_opcode, dec_rs, dec_rt, dec_rd, dec_funct, dec_shamt,
                                  dec_imm, dec_imm_sign_ext, dec_imm_zero_ext, dec_branch_addr, dec_jump_addr,
                                  reg_read1_data, reg_read2_data)
    BEGIN
@@ -325,15 +315,13 @@ BEGIN
       id.rt_addr              <= dec_rt;
       id.rd_addr              <= dec_rd;
       
-      --id.rs_src               <= GET_RS_SRC(id, ex, mem);
-      --id.rt_src               <= GET_RT_SRC(id, ex, mem);
-      
       id.dst_addr              <= GET_DST_ADDR(id);
       
       id_i.is_stalled          <= ex_i.is_stalled;
       id_i.branch_requested    <= '0';
       id_i.forward_rs          <= false;
       id_i.forward_rt          <= false;
+      id_i.branch_addr         <= id.pc + 4;
       
       reg_read1_addr <= dec_rs;
       reg_read2_addr <= dec_rt;
@@ -349,8 +337,6 @@ BEGIN
          id_i.branch_requested <= '1'; 
          id_i.forward_rs       <= HAS_DD_RS(id, mem);
          id_i.forward_rt       <= HAS_DD_RT(id, mem);
-         
-         id_i.branch_addr      <= id.pc + 4;
          
          IF ((NOT id_i.forward_rs AND NOT id_i.forward_rt AND dec_opcode = OP_BEQ AND reg_read1_data =  reg_read2_data) OR
              (NOT id_i.forward_rs AND NOT id_i.forward_rt AND dec_opcode = OP_BNE AND reg_read1_data /= reg_read2_data) OR
@@ -401,7 +387,7 @@ BEGIN
    ---------------------------------------------------------------------------------------------------------------------------
    -- EXECUTE STAGE
    ---------------------------------------------------------------------------------------------------------------------------
-   pipeline_execute : PROCESS (clk, ex, exx, ex_i, mem_i, wb, alu_result)
+   pipeline_execute : PROCESS (clk, ex, exx, ex_i, mem, mem_i, wb, alu_result)
    BEGIN
    
       ex_i.is_stalled <= mem_i.is_stalled;
@@ -479,7 +465,7 @@ BEGIN
    ---------------------------------------------------------------------------------------------------------------------------
    -- MEMORY STAGE
    ---------------------------------------------------------------------------------------------------------------------------
-   pipeline_memory : PROCESS (clk, if_i, mem, memx, mem_i, wb)
+   pipeline_memory : PROCESS (clk, if_i, mem, memx, mem_i, wb, mm_rd_ready, mm_wr_done)
    BEGIN
    
       mem_i.mem_tx_done <= '0';
@@ -511,6 +497,7 @@ BEGIN
       
       mem_i.mm_address <= to_integer(unsigned(mem.result));
       
+      mem_i.mm_data <= (others => 'Z');
       IF (IS_STORE_OP(mem)) THEN
          mem_i.mm_data <= mem_i.rt_fwd_val;
       END IF;
@@ -523,7 +510,7 @@ BEGIN
       
       IF (clk'event AND clk = '1') THEN
          
-         mem_i.mm_data <= (others => 'Z');
+         
          
          mem_i.mem_tx_ongoing <= '0';
          IF (mem_i.mem_lock = '1') THEN
