@@ -90,15 +90,15 @@ proc AddWaves {} {
 	add wave -position end  sim:/$TARGET_CPU/current_state
 	
 	;#IF stage signals
-	add wave -group "IF Stage"  -radix unsigned sim:/$TARGET_CPU/ifx.pc\
-								sim:/$TARGET_CPU/ifx.instr_ready\
-								-radix binary sim:/$TARGET_CPU/ifx.instr\
-								sim:/$TARGET_CPU/ifx.instr_dispatching\
-								sim:/$TARGET_CPU/ifx.instr_dispatched\
-								sim:/$TARGET_CPU/ifx.instr_start_fetch\
-	                            sim:/$TARGET_CPU/ifx.mem_tx_ongoing\
-								sim:/$TARGET_CPU/ifx.mem_lock\
-								-radix unsigned sim:/$TARGET_CPU/ifx.mem_address
+	add wave -group "IF Stage"  -radix unsigned sim:/$TARGET_CPU/if_i.pc\
+								sim:/$TARGET_CPU/if_i.instr_ready\
+								-radix binary sim:/$TARGET_CPU/if_i.instr\
+								sim:/$TARGET_CPU/if_i.instr_dispatching\
+								sim:/$TARGET_CPU/if_i.instr_dispatched\
+								sim:/$TARGET_CPU/if_i.instr_start_fetch\
+	                            sim:/$TARGET_CPU/if_i.mem_tx_ongoing\
+								sim:/$TARGET_CPU/if_i.mem_lock\
+								-radix unsigned sim:/$TARGET_CPU/if_i.mm_address
 								
 	;#ID stage signals
 	add wave -group "ID Stage"  -radix unsigned sim:/$TARGET_CPU/id.pc\
@@ -110,24 +110,69 @@ proc AddWaves {} {
 								-radix unsigned sim:/$TARGET_CPU/id.rd_addr\
 								-radix unsigned sim:/$TARGET_CPU/id.dst_addr\
 								-radix unsigned sim:/$TARGET_CPU/id.result\
-								-radix unsigned sim:/$TARGET_CPU/idx.next_pc\
+								-radix unsigned sim:/$TARGET_CPU/id_i.next_pc\
 								-radix binary sim:/$TARGET_CPU/idx.instr\
-								-radix OP_CODE sim:/$TARGET_CPU/id_opcode\
-								-radix unsigned sim:/$TARGET_CPU/id_rs\
-								-radix unsigned sim:/$TARGET_CPU/id_rt\
-								-radix unsigned sim:/$TARGET_CPU/id_rd\
-								-radix unsigned sim:/$TARGET_CPU/id_shamt\
-								-radix ALU_FUNCT sim:/$TARGET_CPU/id_funct\
-								-radix unsigned sim:/$TARGET_CPU/id_imm\
-								-radix decimal sim:/$TARGET_CPU/id_imm_sign_ext\
-								-radix unsigned sim:/$TARGET_CPU/id_imm_zero_ext\
-								-radix unsigned sim:/$TARGET_CPU/id_branch_addr\
-								-radix unsigned sim:/$TARGET_CPU/id_jump_addr\
-								sim:/$TARGET_CPU/idx.is_stalled\
-								sim:/$TARGET_CPU/idx.branch_requested\
-	                            sim:/$TARGET_CPU/idx.branch_addr\
-								sim:/$TARGET_CPU/idx.forward_rs\
-								sim:/$TARGET_CPU/idx.forward_rt
+								sim:/$TARGET_CPU/id_i.is_stalled\
+								sim:/$TARGET_CPU/id_i.branch_requested\
+	                            -radix unsigned sim:/$TARGET_CPU/id_i.branch_addr\
+								sim:/$TARGET_CPU/id_i.forward_rs\
+								sim:/$TARGET_CPU/id_i.forward_rt
+								
+	;#EX stage signals
+	add wave -group "EX Stage"  -radix unsigned sim:/$TARGET_CPU/ex.pc\
+								-radix unsigned sim:/$TARGET_CPU/ex.pos\
+								-radix OP_CODE sim:/$TARGET_CPU/ex.op\
+								-radix ALU_FUNCT sim:/$TARGET_CPU/ex.funct\
+								-radix unsigned sim:/$TARGET_CPU/ex.rs_addr\
+								-radix unsigned sim:/$TARGET_CPU/ex.rt_addr\
+								-radix unsigned sim:/$TARGET_CPU/ex.rd_addr\
+								-radix unsigned sim:/$TARGET_CPU/ex.dst_addr\
+								-radix unsigned sim:/$TARGET_CPU/ex.result\
+								-radix decimal sim:/$TARGET_CPU/exx.rs_val\
+								-radix decimal sim:/$TARGET_CPU/exx.rt_val\
+								-radix decimal sim:/$TARGET_CPU/exx.imm\
+								-radix decimal sim:/$TARGET_CPU/exx.imm_sign_ext\
+								-radix unsigned sim:/$TARGET_CPU/exx.imm_zero_ext\
+								-radix unsigned sim:/$TARGET_CPU/exx.shamt\
+								sim:/$TARGET_CPU/ex_i.is_stalled\
+								-radix decimal sim:/$TARGET_CPU/ex_i.rs_fwd_val\
+								-radix decimal sim:/$TARGET_CPU/ex_i.rt_fwd_val
+								
+	;#MEM stage signals
+	add wave -group "MEM Stage" -radix unsigned sim:/$TARGET_CPU/mem.pc\
+								-radix unsigned sim:/$TARGET_CPU/mem.pos\
+								-radix OP_CODE sim:/$TARGET_CPU/mem.op\
+								-radix ALU_FUNCT sim:/$TARGET_CPU/mem.funct\
+								-radix unsigned sim:/$TARGET_CPU/mem.rs_addr\
+								-radix unsigned sim:/$TARGET_CPU/mem.rt_addr\
+								-radix unsigned sim:/$TARGET_CPU/mem.rd_addr\
+								-radix unsigned sim:/$TARGET_CPU/mem.dst_addr\
+								-radix unsigned sim:/$TARGET_CPU/mem.result\
+								-radix decimal sim:/$TARGET_CPU/memx.rt_val\
+								sim:/$TARGET_CPU/mem_i.is_stalled\
+								sim:/$TARGET_CPU/mem_i.mem_lock\
+								sim:/$TARGET_CPU/mem_i.mem_tx_ongoing\
+								sim:/$TARGET_CPU/mem_i.mem_tx_done\
+								sim:/$TARGET_CPU/mem_i.mm_read\
+								sim:/$TARGET_CPU/mem_i.mm_word_byte\
+								-radix decimal sim:/$TARGET_CPU/mem_i.rt_fwd_val\
+								-radix unsigned sim:/$TARGET_CPU/mem_i.mm_address\
+								-radix decimal sim:/$TARGET_CPU/mem_i.mm_data
+								
+								
+	;#Instruction decoder signals
+	add wave -group "Instruction Decoder"\
+								-radix OP_CODE sim:/$TARGET_CPU/dec_opcode\
+								-radix unsigned sim:/$TARGET_CPU/dec_rs\
+								-radix unsigned sim:/$TARGET_CPU/dec_rt\
+								-radix unsigned sim:/$TARGET_CPU/dec_rd\
+								-radix unsigned sim:/$TARGET_CPU/dec_shamt\
+								-radix ALU_FUNCT sim:/$TARGET_CPU/dec_funct\
+								-radix unsigned sim:/$TARGET_CPU/dec_imm\
+								-radix decimal sim:/$TARGET_CPU/dec_imm_sign_ext\
+								-radix unsigned sim:/$TARGET_CPU/dec_imm_zero_ext\
+								-radix unsigned sim:/$TARGET_CPU/dec_branch_addr\
+								-radix unsigned sim:/$TARGET_CPU/dec_jump_addr\
 								
 	;#Register file signals
 	add wave -group Registers   -radix unsigned sim:/$TARGET_CPU/reg_read1_addr\
@@ -147,13 +192,13 @@ proc AddWaves {} {
 								-radix decimal  sim:/$TARGET_CPU/alu_result
 	
 	;#Memory signals
-	add wave -group Memory     	-radix unsigned sim:/$TARGET_CPU/mem_address\
-								sim:/$TARGET_CPU/mem_word_byte\
-								sim:/$TARGET_CPU/mem_we\
-								sim:/$TARGET_CPU/mem_wr_done\
-								sim:/$TARGET_CPU/mem_re\
-								sim:/$TARGET_CPU/mem_rd_ready\
-								-radix decimal  sim:/$TARGET_CPU/mem_data
+	add wave -group Memory     	-radix unsigned sim:/$TARGET_CPU/mm_address\
+								sim:/$TARGET_CPU/mm_word_byte\
+								sim:/$TARGET_CPU/mm_we\
+								sim:/$TARGET_CPU/mm_wr_done\
+								sim:/$TARGET_CPU/mm_re\
+								sim:/$TARGET_CPU/mm_rd_ready\
+								-radix decimal  sim:/$TARGET_CPU/mm_data
 								
 								
 	configure wave -namecolwidth 250

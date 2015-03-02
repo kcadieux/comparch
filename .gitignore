@@ -13,6 +13,7 @@ CPUS/**/output_files/
 CPUS/**/work/
 CPUS/**/tests/*.dat
 CPUS/**/quartus/Init[0-9].dat
+CPUS/**/simulation/
 Assembler/**/bin/
 Assembler/**/obj/
 MIKA/**/bin/
