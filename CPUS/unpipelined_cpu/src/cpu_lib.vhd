@@ -117,6 +117,7 @@ PACKAGE cpu_lib IS
    TYPE ID_INTERNAL IS RECORD
       is_stalled           : STD_LOGIC;
       branch_requested     : STD_LOGIC;
+      halt_requested       : STD_LOGIC;
       branch_addr          : NATURAL;
       forward_rs           : BOOLEAN;
       forward_rt           : BOOLEAN;
@@ -126,6 +127,7 @@ PACKAGE cpu_lib IS
    CONSTANT DEFAULT_ID_INTERNAL : ID_INTERNAL := (
       is_stalled           => '0',
       branch_requested     => '0',
+      halt_requested       => '0',
       branch_addr          => 0,
       forward_rs           => false,
       forward_rt           => false,
@@ -136,12 +138,14 @@ PACKAGE cpu_lib IS
       is_stalled           : STD_LOGIC;
       rs_fwd_val           : STD_LOGIC_VECTOR(REG_DATA_WIDTH-1 DOWNTO 0);
       rt_fwd_val           : STD_LOGIC_VECTOR(REG_DATA_WIDTH-1 DOWNTO 0);
+      assertion            : STD_LOGIC;
    END RECORD;
    
    CONSTANT DEFAULT_EX_INTERNAL : EX_INTERNAL := (
       is_stalled           => '0',
       rs_fwd_val           => (others => '0'),
-      rt_fwd_val           => (others => '0')
+      rt_fwd_val           => (others => '0'),
+      assertion            => '0'
    );
    
    TYPE MEM_INTERNAL IS RECORD
@@ -170,6 +174,14 @@ PACKAGE cpu_lib IS
       mm_data              => (others => '0'),
       rt_fwd_val           => (others => '0'),
       has_dd_rt            => '0'
+   );
+   
+   TYPE WB_INTERNAL IS RECORD
+      halt                 : STD_LOGIC;
+   END RECORD;
+   
+   CONSTANT DEFAULT_WB_INTERNAL : WB_INTERNAL := (
+      halt                 => '0'
    );
       
    FUNCTION IS_ALU_OP         (p : PIPE_REG) RETURN BOOLEAN;
@@ -299,6 +311,8 @@ PACKAGE BODY cpu_lib IS
          RETURN POS_EX;
       ELSIF (IS_MEM_OP(p)) THEN
          RETURN POS_EX;
+      ELSIF (p.op = OP_ASRT) THEN
+         RETURN POS_EX;
       ELSIF (IS_BRANCH_OP(p) OR (p.op = OP_ALU AND p.funct = FUNCT_JR)) THEN
          RETURN POS_ID;
       END IF;
@@ -309,6 +323,8 @@ PACKAGE BODY cpu_lib IS
    FUNCTION GET_RT_READ_STAGE (p : PIPE_REG) RETURN NATURAL IS
    BEGIN
       IF    (p.op = OP_ALU AND p.funct /= FUNCT_JR AND NOT IS_MOVE_OP(p)) THEN
+         RETURN POS_EX;
+      ELSIF (p.op = OP_ASRT OR p.op = OP_ASRTI) THEN
          RETURN POS_EX;
       ELSIF (IS_STORE_OP(p)) THEN
          RETURN POS_MEM;

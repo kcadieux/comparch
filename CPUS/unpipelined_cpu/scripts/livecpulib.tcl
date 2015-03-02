@@ -115,6 +115,7 @@ proc AddWaves {} {
 								-radix binary sim:/$TARGET_CPU/idx.instr\
 								sim:/$TARGET_CPU/id_i.is_stalled\
 								sim:/$TARGET_CPU/id_i.branch_requested\
+								sim:/$TARGET_CPU/id_i.halt_requested\
 	                            -radix unsigned sim:/$TARGET_CPU/id_i.branch_addr\
 								sim:/$TARGET_CPU/id_i.forward_rs\
 								sim:/$TARGET_CPU/id_i.forward_rt
@@ -137,7 +138,8 @@ proc AddWaves {} {
 								-radix unsigned sim:/$TARGET_CPU/exx.shamt\
 								sim:/$TARGET_CPU/ex_i.is_stalled\
 								-radix decimal sim:/$TARGET_CPU/ex_i.rs_fwd_val\
-								-radix decimal sim:/$TARGET_CPU/ex_i.rt_fwd_val
+								-radix decimal sim:/$TARGET_CPU/ex_i.rt_fwd_val\
+								sim:/$TARGET_CPU/ex_i.assertion
 								
 	;#MEM stage signals
 	add wave -group "MEM Stage" -radix unsigned sim:/$TARGET_CPU/mem.pc\
@@ -151,6 +153,7 @@ proc AddWaves {} {
 								-radix unsigned sim:/$TARGET_CPU/mem.result\
 								-radix decimal sim:/$TARGET_CPU/memx.rt_val\
 								sim:/$TARGET_CPU/mem_i.is_stalled\
+								sim:/$TARGET_CPU/mem_i.mem_request_lock\
 								sim:/$TARGET_CPU/mem_i.mem_lock\
 								sim:/$TARGET_CPU/mem_i.mem_tx_ongoing\
 								sim:/$TARGET_CPU/mem_i.mem_tx_done\
@@ -399,7 +402,7 @@ proc RunTest {testName} {
 
 	InitTest $testName
 	
-	when -label test_prog {/unpipelined_cpu/finished_prog == '1' || /unpipelined_cpu/assertion == '1'} {
+	when -label test_prog {/cpu/finished_prog == '1' || /cpu/assertion == '1'} {
 		stop
 	}
 

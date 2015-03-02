@@ -47,7 +47,7 @@ END cpu;
 
 ARCHITECTURE rtl OF cpu IS
    
-   TYPE STATE IS (INITIAL, RUNNING, HALT, ASSRT);
+   TYPE STATE IS (INITIAL, RUNNING);
    
    SIGNAL current_state    : STATE     := INITIAL;
    
@@ -111,8 +111,13 @@ ARCHITECTURE rtl OF cpu IS
    SIGNAL id_i             : ID_INTERNAL     := DEFAULT_ID_INTERNAL;
    SIGNAL ex_i             : EX_INTERNAL     := DEFAULT_EX_INTERNAL;
    SIGNAL mem_i            : MEM_INTERNAL    := DEFAULT_MEM_INTERNAL;
+   SIGNAL wb_i             : WB_INTERNAL     := DEFAULT_WB_INTERNAL;
+   
+   SIGNAL global_halt      : STD_LOGIC;
    
 BEGIN
+   
+   global_halt   <= ex_i.assertion OR wb_i.halt;
    
    main_memory : ENTITY work.Main_Memory
       GENERIC MAP (
@@ -186,10 +191,12 @@ BEGIN
    
    fsm : PROCESS (clk, current_state)
    BEGIN
+
       IF (clk'event AND clk = '1') THEN
          CASE current_state IS
             WHEN INITIAL =>
                current_state <= RUNNING;
+               
             WHEN OTHERS =>
          END CASE;
       END IF;
@@ -241,7 +248,11 @@ BEGIN
       if_i.mem_lock           <= if_i.mem_tx_ongoing OR NOT mem_i.mem_request_lock;
       if_i.mem_tx_complete    <= if_i.mem_tx_ongoing AND mm_rd_ready;
       
-      if_i.can_issue          <= NOT id_i.is_stalled AND NOT id_i.branch_requested;
+      if_i.can_issue          <= '0';
+      IF (id_i.is_stalled = '0' AND id_i.branch_requested = '0' AND id_i.halt_requested = '0' AND global_halt = '0') THEN
+         if_i.can_issue       <= '1';
+      END IF;
+      
       if_i.mem_is_free        <= (if_i.mem_tx_complete OR NOT if_i.mem_tx_ongoing) AND NOT mem_i.mem_request_lock; 
    
       if_i.mm_address         <= if_i.pc;
@@ -328,8 +339,12 @@ BEGIN
       
       --Deal with all stalls during ID
       id_i.is_stalled <= ex_i.is_stalled;
-      IF (DD_STALL(id, ex, mem)) THEN
+      IF (DD_STALL(id, ex, mem) OR global_halt = '1') THEN
          id_i.is_stalled <= '1';
+      END IF;
+      
+      IF (id.op = OP_HALT) THEN
+         id_i.halt_requested <= '1';
       END IF;
       
       --Handle branches and jumps
@@ -391,7 +406,7 @@ BEGIN
    BEGIN
    
       ex_i.is_stalled <= mem_i.is_stalled;
-      IF (DD_STALL(ex, mem, wb)) THEN
+      IF (DD_STALL(ex, mem, wb) OR global_halt = '1') THEN
          ex_i.is_stalled <= '1';
       END IF;
       
@@ -425,6 +440,18 @@ BEGIN
       ELSIF ex.op = OP_ANDI  THEN alu_funct <= FUNCT_AND;
       ELSIF ex.op = OP_ORI   THEN alu_funct <= FUNCT_OR;
       ELSIF ex.op = OP_XORI  THEN alu_funct <= FUNCT_XOR;
+      END IF;
+      
+      --Deal with assertions
+      ex_i.assertion <= '0';
+      assertion      <= '0';
+      IF (clk'event AND clk = '0') THEN  --Allow some time for the inputs to stabilize before evaluating the assertion
+         IF ((ex.op = OP_ASRT  AND ex_i.rs_fwd_val /= ex_i.rt_fwd_val) OR
+             (ex.op = OP_ASRTI AND ex_i.rt_fwd_val /= exx.imm_sign_ext)) THEN
+            ex_i.assertion <= '1';
+            assertion      <= '1';
+            assertion_pc   <= ex.pc;
+         END IF;
       END IF;
    
       IF (clk'event AND clk = '1') THEN
@@ -480,8 +507,15 @@ BEGIN
          mem_i.mem_request_lock <= '1'; 
       END IF;
       
-      mem_i.is_stalled  <= mem_i.mem_request_lock AND NOT mem_i.mem_tx_done;
-      mem_i.mem_lock    <= mem_i.mem_request_lock AND NOT if_i.mem_lock;
+      mem_i.is_stalled  <= '0';
+      IF ((mem_i.mem_request_lock = '1' AND mem_i.mem_tx_done = '0') OR global_halt = '1') THEN
+         mem_i.is_stalled  <= '1';
+      END IF;
+      
+      mem_i.mem_lock    <= '0';
+      IF (mem_i.mem_request_lock = '1' AND if_i.mem_lock = '0' AND global_halt = '0') THEN
+         mem_i.mem_lock    <= '1';
+      END IF;
       
       mem_i.mm_read <= '0';
       IF (IS_LOAD_OP(mem)) THEN
@@ -493,7 +527,10 @@ BEGIN
          mem_i.mm_word_byte <= '1';
       END IF;
       
-      mem_i.mm_address <= to_integer(unsigned(mem.result));
+      mem_i.mm_address     <= 0;
+      IF (IS_MEM_OP(mem)) THEN
+         mem_i.mm_address  <= to_integer(unsigned(mem.result));
+      END IF;
       
       mem_i.mm_data <= (others => 'Z');
       IF (IS_STORE_OP(mem)) THEN
@@ -542,12 +579,21 @@ BEGIN
    ---------------------------------------------------------------------------------------------------------------------------
    -- WRITE BACK STAGE
    ---------------------------------------------------------------------------------------------------------------------------
-   pipeline_write_back : PROCESS (clk, wb, reg_we, reg_write_addr, reg_write_data)
+   pipeline_write_back : PROCESS (clk, wb, wb_i, reg_we, reg_write_addr, reg_write_data)
    BEGIN
-   
-      reg_we         <= '1';
+      
+      reg_we         <= '0';
+      IF (global_halt = '0') THEN
+         reg_we         <= '1';
+      END IF;
+      
       reg_write_addr <= wb.dst_addr;
       reg_write_data <= wb.result;
+      
+      IF (wb.op = OP_HALT) THEN
+         wb_i.halt      <= '1';
+         finished_prog  <= '1';
+      END IF;
    
    END PROCESS;
    

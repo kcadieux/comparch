@@ -4,7 +4,6 @@ use ieee.std_logic_1164.all; -- allows use of the std_logic_vector type
 use ieee.numeric_std.all; -- allows use of the unsigned type
 
 use work.architecture_constants.all;
-use work.alu_codes.all;
 
 PACKAGE op_codes IS
    --Standard MIPS op codes
