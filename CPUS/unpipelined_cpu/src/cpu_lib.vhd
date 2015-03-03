@@ -158,8 +158,6 @@ PACKAGE cpu_lib IS
       mm_word_byte         : STD_LOGIC;
       mm_address           : NATURAL;
       mm_data              : STD_LOGIC_VECTOR(MEM_DATA_WIDTH-1 DOWNTO 0);
-      rt_fwd_val           : STD_LOGIC_VECTOR(REG_DATA_WIDTH-1 DOWNTO 0);
-      has_dd_rt            : STD_LOGIC;
    END RECORD;
    
    CONSTANT DEFAULT_MEM_INTERNAL : MEM_INTERNAL := (
@@ -171,9 +169,7 @@ PACKAGE cpu_lib IS
       mm_read              => '0',
       mm_word_byte         => '0',
       mm_address           => 0,
-      mm_data              => (others => '0'),
-      rt_fwd_val           => (others => '0'),
-      has_dd_rt            => '0'
+      mm_data              => (others => '0')
    );
    
    TYPE WB_INTERNAL IS RECORD

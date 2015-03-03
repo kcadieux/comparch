@@ -283,6 +283,7 @@ BEGIN
                id.pc                <= if_i.pc;
                id.pos               <= POS_ID;
                idx.instr            <= if_i.instr_selection;
+               if_i.instr_ready     <= '0';
             ELSE
                if_i.instr           <= if_i.instr_selection;
                if_i.instr_ready     <= '1';
@@ -410,7 +411,7 @@ BEGIN
          ex_i.is_stalled <= '1';
       END IF;
       
-      
+      --Handle forwarding here
       CASE GET_RS_SRC(ex, mem, wb) IS
          WHEN POS_MEM => ex_i.rs_fwd_val <= mem.result;
          WHEN POS_WB  => ex_i.rs_fwd_val <= wb.result;
@@ -445,7 +446,7 @@ BEGIN
       --Deal with assertions
       ex_i.assertion <= '0';
       assertion      <= '0';
-      IF (clk'event AND clk = '0') THEN  --Allow some time for the inputs to stabilize before evaluating the assertion
+      IF (ex_i.is_stalled = '0' AND clk'event AND clk = '1') THEN  --Allow some time for the inputs to stabilize before evaluating the assertion
          IF ((ex.op = OP_ASRT  AND ex_i.rs_fwd_val /= ex_i.rt_fwd_val) OR
              (ex.op = OP_ASRTI AND ex_i.rt_fwd_val /= exx.imm_sign_ext)) THEN
             ex_i.assertion <= '1';
@@ -469,7 +470,7 @@ BEGIN
                mem.pos     <= ex.pos + 1;
                
                --Handle the case when a store depends on the 2nd previous instruction
-               --We need to do it here because the 2nf previous instruction is leacing the pipeline at this point
+               --We need to do it here because the 2nd previous instruction is leaving the pipeline at this point
                memx.rt_val     <= exx.rt_val;
                IF (HAS_DD_RT(ex, wb) AND IS_STORE_OP(ex)) THEN
                   memx.rt_val  <= wb.result;
@@ -534,20 +535,12 @@ BEGIN
       
       mem_i.mm_data <= (others => 'Z');
       IF (IS_STORE_OP(mem)) THEN
-         IF    (HAS_DD_RT(mem, wb))    THEN mem_i.mm_data <= wb.result;
-         ELSIF (mem_i.has_dd_rt = '1') THEN mem_i.mm_data <= mem_i.rt_fwd_val;
+         IF  (HAS_DD_RT(mem, wb))    THEN mem_i.mm_data <= wb.result;
          ELSE mem_i.mm_data <= memx.rt_val; 
          END IF;
       END IF;
       
       IF (clk'event AND clk = '1') THEN
- 
-         --Handle the case when a store depends on the previous instruction
-         --Save the forwarded value before write back leaves the pipeline
-         IF (HAS_DD_RT(mem, wb)) THEN
-            mem_i.rt_fwd_val    <= wb.result;
-            mem_i.has_dd_rt     <= '1';
-         END IF;
  
          mem_i.mem_tx_ongoing <= '0';
          IF (mem_i.mem_lock = '1') THEN
@@ -556,17 +549,18 @@ BEGIN
          
          IF (mem_i.mem_tx_ongoing = '1' AND mem_i.mem_tx_done = '1') THEN
             mem_i.mem_tx_ongoing <= '0';
-            mem_i.has_dd_rt      <= '0';
          END IF;
  
          IF (mem_i.is_stalled = '1' AND mem_i.mem_tx_done = '0') THEN
-            wb    <= DEFAULT_PIPE_REG;
+            --wb    <= DEFAULT_PIPE_REG;
          ELSE
             wb                 <= mem;
             wb.pos             <= mem.pos + 1;
             
-            IF (IS_LOAD_OP(mem) AND if_i.mem_lock = '0') THEN
+            IF    (mem.op = OP_LW AND if_i.mem_lock = '0') THEN
                wb.result       <= mm_data;
+            ELSIF (mem.op = OP_LB AND if_i.mem_lock = '0') THEN
+               wb.result       <= std_logic_vector(resize(signed(mm_data(7 DOWNTO 0)), REG_DATA_WIDTH));
             END IF;
             
          END IF;
@@ -577,7 +571,7 @@ BEGIN
    
    
    ---------------------------------------------------------------------------------------------------------------------------
-   -- WRITE BACK STAGE
+   -- WRITE BACK STAGE (thank God it's over!)
    ---------------------------------------------------------------------------------------------------------------------------
    pipeline_write_back : PROCESS (clk, wb, wb_i, reg_we, reg_write_addr, reg_write_data)
    BEGIN

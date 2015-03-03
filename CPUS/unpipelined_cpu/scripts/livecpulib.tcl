@@ -159,9 +159,19 @@ proc AddWaves {} {
 								sim:/$TARGET_CPU/mem_i.mem_tx_done\
 								sim:/$TARGET_CPU/mem_i.mm_read\
 								sim:/$TARGET_CPU/mem_i.mm_word_byte\
-								-radix decimal sim:/$TARGET_CPU/mem_i.rt_fwd_val\
 								-radix unsigned sim:/$TARGET_CPU/mem_i.mm_address\
 								-radix decimal sim:/$TARGET_CPU/mem_i.mm_data
+								
+	;#WB stage signals
+	add wave -group "WB Stage"  -radix unsigned sim:/$TARGET_CPU/wb.pc\
+								-radix unsigned sim:/$TARGET_CPU/wb.pos\
+								-radix OP_CODE sim:/$TARGET_CPU/wb.op\
+								-radix ALU_FUNCT sim:/$TARGET_CPU/wb.funct\
+								-radix unsigned sim:/$TARGET_CPU/wb.rs_addr\
+								-radix unsigned sim:/$TARGET_CPU/wb.rt_addr\
+								-radix unsigned sim:/$TARGET_CPU/wb.rd_addr\
+								-radix unsigned sim:/$TARGET_CPU/wb.dst_addr\
+								-radix unsigned sim:/$TARGET_CPU/wb.result
 								
 								
 	;#Instruction decoder signals
@@ -406,7 +416,7 @@ proc RunTest {testName} {
 		stop
 	}
 
-	run 2000 us
+	run 1 us
 
 	if {[exa /$TARGET_CPU/finished_prog] == 1} {
 		puts "SUCCESS"
