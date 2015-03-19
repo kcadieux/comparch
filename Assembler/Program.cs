@@ -156,6 +156,8 @@ namespace Assembler
                     {
                         words = words.Skip(1).Take(words.Length - 2).ToArray();
                     }
+
+                    if (words.Length == 0) continue;
                 }
 
                 Operation op = Tools.StringToOperation(words[0]);
@@ -368,7 +370,7 @@ namespace Assembler
                         labelDictionary.Add(label, instruction);
 
                         //If the LABEL line also contains an instruction, count it
-                        if (Tools.StringToOperation(words[1]) != Operation.None)
+                        if (words.Length > 1 && Tools.StringToOperation(words[1]) != Operation.None)
                         {
                             instruction++;
                         }

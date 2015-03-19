@@ -195,7 +195,8 @@ proc AddWaves {} {
 								-radix decimal  sim:/$TARGET_CPU/reg_read2_data\
 	                            sim:/$TARGET_CPU/reg_we\
 								-radix unsigned sim:/$TARGET_CPU/reg_write_addr\
-								-radix decimal  sim:/$TARGET_CPU/reg_write_data
+								-radix decimal  sim:/$TARGET_CPU/reg_write_data\
+								sim:/$TARGET_CPU/reg_file/regs
 	
 	;#ALU signals
 	add wave -group ALU  		-radix decimal  sim:/$TARGET_CPU/alu_a\
@@ -212,7 +213,11 @@ proc AddWaves {} {
 								sim:/$TARGET_CPU/mm_wr_done\
 								sim:/$TARGET_CPU/mm_re\
 								sim:/$TARGET_CPU/mm_rd_ready\
-								-radix decimal  sim:/$TARGET_CPU/mm_data
+								-radix decimal  sim:/$TARGET_CPU/mm_data\
+							    sim:/$TARGET_CPU/main_memory/Block0/Memory\
+								sim:/$TARGET_CPU/main_memory/Block1/Memory\
+								sim:/$TARGET_CPU/main_memory/Block2/Memory\
+								sim:/$TARGET_CPU/main_memory/Block3/Memory
 								
 								
 	configure wave -namecolwidth 250
@@ -416,7 +421,7 @@ proc RunTest {testName} {
 		stop
 	}
 
-	run 1 us
+	run 10 us
 
 	if {[exa /$TARGET_CPU/finished_prog] == 1} {
 		puts "SUCCESS"

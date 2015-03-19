@@ -501,8 +501,7 @@ BEGIN
       ELSIF (IS_STORE_OP(mem) AND mem_i.mem_tx_ongoing = '1' AND mm_wr_done  = '1') THEN mem_i.mem_tx_done <= '1';
       END IF;
    
-      --Manage memory lock requests. Loads will request the lock 1 cycle longer
-      --in order to have the time to read the data from the memory data lines.
+      --Issue a request for memory only if we have a memory instruction
       mem_i.mem_request_lock  <= '0';
       IF (IS_MEM_OP(mem)) THEN
          mem_i.mem_request_lock <= '1'; 
@@ -513,6 +512,7 @@ BEGIN
          mem_i.is_stalled  <= '1';
       END IF;
       
+      --If memory was requested, lock it as soon as it is available
       mem_i.mem_lock    <= '0';
       IF (mem_i.mem_request_lock = '1' AND if_i.mem_lock = '0' AND global_halt = '0') THEN
          mem_i.mem_lock    <= '1';

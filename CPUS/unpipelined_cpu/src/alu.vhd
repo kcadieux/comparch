@@ -76,7 +76,6 @@ BEGIN
    BEGIN
       IF (clk'event and clk = '1') THEN
          IF (funct = FUNCT_MULT) THEN
-            report "In mult";
             reg_hi <= result_mult(REG_DATA_WIDTH * 2 - 1 DOWNTO REG_DATA_WIDTH);
             reg_lo <= result_mult(REG_DATA_WIDTH-1 DOWNTO 0);
             
