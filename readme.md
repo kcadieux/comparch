@@ -33,7 +33,7 @@ _________________________________________________________________
 
 2) PROCESSOR
 
-The processor VHDL files are located in the CPUS/unpipelined_cpu/src folder.
+The processor VHDL files are located in the CPUS/cpu/src folder.
 
 Processor extras:
 
@@ -57,7 +57,7 @@ reg <register> <radix>	     #Inspect the value of the provided register and prin
 regs <radix>				 #Print the value of all registers in the given radix. If no radix is provided,
 							 #the default value is "signed".
 							 #(e.g. regs unsigned)
-test <test name>			 #Runs the test program with the given name in the unpipelined_cpu/tests folder.
+test <test name>			 #Runs the test program with the given name in the cpu/tests folder.
 							 #The test name must NOT include the .asm extension.
 							 #(e.g. test addi)  This will test the addi.asm file in the tests folder
 RebootCPU					 #Restarts the CPU from the beginning. 
