@@ -157,7 +157,7 @@ namespace MIKA
         public void runTest()
         {
             ProcessStartInfo startInfo = new ProcessStartInfo();
-            startInfo.FileName = "CPUS\\unpipelined_cpu\\scripts\\RunTest.bat";
+            startInfo.FileName = "CPUS\\cpu\\scripts\\RunTest.bat";
             startInfo.Arguments = Name.ToLower();
             startInfo.RedirectStandardOutput = true;
             startInfo.UseShellExecute = false;
@@ -231,9 +231,9 @@ namespace MIKA
         {
             //try
             //{
-            //    if (Directory.Exists("CPUS\\unpipelined_cpu\\quartus\\work"))
+            //    if (Directory.Exists("CPUS\\cpu\\quartus\\work"))
             //    {
-            //        DeleteDirectory("CPUS\\unpipelined_cpu\\quartus\\work");
+            //        DeleteDirectory("CPUS\\cpu\\quartus\\work");
             //    }
             //}
             //catch (Exception)
@@ -241,7 +241,7 @@ namespace MIKA
             //}
 
             ProcessStartInfo startInfo = new ProcessStartInfo();
-            startInfo.FileName = "CPUS\\unpipelined_cpu\\scripts\\Compile.bat";
+            startInfo.FileName = "CPUS\\cpu\\scripts\\Compile.bat";
             startInfo.RedirectStandardOutput = true;
             startInfo.UseShellExecute = false;
             startInfo.CreateNoWindow = true;

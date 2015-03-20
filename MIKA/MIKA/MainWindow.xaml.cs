@@ -46,7 +46,7 @@ namespace MIKA
 
             Background = myLinearGradientBrush;
             Tests = new List<Test>();
-            var testNames = System.IO.Directory.GetFiles("CPUS\\unpipelined_cpu\\tests", "*.asm");
+            var testNames = System.IO.Directory.GetFiles("CPUS\\cpu\\tests", "*.asm");
             foreach (var testName in testNames)
             {
                 string fileNameWithExtension = testName.Split('\\')[3];
@@ -158,7 +158,7 @@ namespace MIKA
                 return;
             }
 
-            string newFileName = Path.Combine("CPUS\\unpipelined_cpu\\tests", TestName.Text + ".asm");
+            string newFileName = Path.Combine("CPUS\\cpu\\tests", TestName.Text + ".asm");
 
             if (File.Exists(newFileName))
             {
