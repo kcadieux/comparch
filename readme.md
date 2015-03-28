@@ -15,7 +15,7 @@ It consists of the C# solution and the binaries (compiled files).
 NOTE: Given that we have written this in C#, it will only run on
 Windows computer with .NET 4.0 installed.
 
-To run the assembler, go to Assembler/bin/Release and run the 
+To run the assembler, go to CPUS/cpu/bin and run the 
 Assembler.exe file. Use the following options, depending on your
 needs:
 
