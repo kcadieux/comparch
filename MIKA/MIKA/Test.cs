@@ -240,17 +240,17 @@ namespace MIKA
             //{
             //}
 
-            ProcessStartInfo startInfo = new ProcessStartInfo();
-            startInfo.FileName = "CPUS\\cpu\\scripts\\Compile.bat";
-            startInfo.RedirectStandardOutput = true;
-            startInfo.UseShellExecute = false;
-            startInfo.CreateNoWindow = true;
-            startInfo.WindowStyle = ProcessWindowStyle.Hidden;
+            //ProcessStartInfo startInfo = new ProcessStartInfo();
+            //startInfo.FileName = "CPUS\\cpu\\scripts\\Compile.bat";
+            //startInfo.RedirectStandardOutput = true;
+            //startInfo.UseShellExecute = false;
+            //startInfo.CreateNoWindow = true;
+            //startInfo.WindowStyle = ProcessWindowStyle.Hidden;
 
-            using (Process exeProcess = Process.Start(startInfo))
-            {
-                exeProcess.WaitForExit();
-            }
+            //using (Process exeProcess = Process.Start(startInfo))
+            //{
+            //    exeProcess.WaitForExit();
+            //}
         }
 
         public static void DeleteDirectory(string targetDir)
