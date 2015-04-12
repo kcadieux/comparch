@@ -29,7 +29,7 @@ END Main_Memory;
 ARCHITECTURE Behavioural OF Main_Memory IS 
 
 
-	signal data0,data1,data2,data3,data0_test : std_logic_vector (Num_Bits_in_Byte-1 downto 0);
+	signal data0,data1,data2,data3 : std_logic_vector (Num_Bits_in_Byte-1 downto 0);
 	signal wr_done0,wr_done1,wr_done2,wr_done3:std_logic; 
 	signal rd_ready0,rd_ready1,rd_ready2,rd_ready3:std_logic; 
 	signal re0,re1,re2,re3:std_logic; 
@@ -57,7 +57,6 @@ ARCHITECTURE Behavioural OF Main_Memory IS
          re : IN  std_logic;
          rd_ready : OUT  std_logic;
          data : INOUT  std_logic_vector(Num_Bits_in_Byte-1 downto 0);
-         data_test : INOUT  std_logic_vector(Num_Bits_in_Byte-1 downto 0);
          initialize : IN  std_logic;
          dump : IN  std_logic
 		
@@ -81,7 +80,6 @@ BEGIN
           re => re0,
           rd_ready => rd_ready0,
           data => data0,  
-          data_test => data0_test,
           initialize => Block_Mem_Init,
           dump => dump
         );
@@ -103,8 +101,7 @@ BEGIN
           wr_done => wr_done1,
           re => re1,
           rd_ready => rd_ready1,
-          data => data1,
-          data_test => data0_test,        
+          data => data1,   
           initialize => Block_Mem_Init,
           dump => dump
         );
@@ -126,7 +123,6 @@ BEGIN
           re => re2,
           rd_ready => rd_ready2,
           data => data2,
-          data_test => data0_test,
           initialize => Block_Mem_Init,
           dump => dump
         );
@@ -148,7 +144,6 @@ BEGIN
           re => re3,
           rd_ready => rd_ready3,
           data => data3,
-          data_test => data0_test,
           initialize => Block_Mem_Init,
           dump => dump
         );		
@@ -166,9 +161,6 @@ we2 <= '1' when (we='1' and Word_Byte='1') or (we='1' and Word_Byte='0' and Byte
 we3 <= '1' when (we='1' and Word_Byte='1') or (we='1' and Word_Byte='0' and Byte_Offset=3) else
 		 '0';
 		 
-data0_test <=  data(Num_Bits_in_Byte*1-1 downto 0) when (we='1' and Word_Byte='1') else
-               data(Num_Bits_in_Byte*1-1 downto 0) when (we='1' and Word_Byte='0' and Byte_Offset=0) else
-               "ZZZZZZZZ";
 
 data0 <= data(Num_Bits_in_Byte*1-1 downto 0) when (we='1' and Word_Byte='1') else
 		   data(Num_Bits_in_Byte*1-1 downto 0) when (we='1' and Word_Byte='0' and Byte_Offset=0) else

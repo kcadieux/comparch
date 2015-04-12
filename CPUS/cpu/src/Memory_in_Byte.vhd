@@ -20,7 +20,6 @@ ENTITY Memory_in_Byte IS
 			re :in std_logic;
 			rd_ready: out std_logic; --indicates that the read data is ready at the output.
 			data : inout std_logic_vector(Num_Bits_in_Byte-1 downto 0);  
-         data_test : inout std_logic_vector(Num_Bits_in_Byte-1 downto 0); 
 			initialize: in std_logic;
 			dump: in std_logic
 			
@@ -105,11 +104,9 @@ BEGIN
 		-- if not initializing nor dumping
 		elsif(clk'event and clk='1') then
 			data <= (others=>'Z'); --Since the data port is an INOUT 
-         data_test <= (others=>'Z'); --Since the data port is an INOUT 
 			if (re='1' and we='0') then
 				if(delay_cnt >= Read_Delay) then -- wait enough till Read_Dalys pass
 					data <= Memory(address);
-               data_test <= Memory(address);
 					delay_cnt := 0;
 					wr_done <= '0';
 					rd_ready <='1';
