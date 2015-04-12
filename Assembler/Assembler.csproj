@@ -41,6 +41,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ByteWriter.cs" />
+    <Compile Include="Instruction.cs" />
     <Compile Include="Operation.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -49,7 +50,7 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>xcopy /R /Y "$(SolutionDir)\bin\$(ConfigurationName)\Assembler.exe" "$(SolutionDir)..\CPUS\unpipelined_cpu\bin"</PostBuildEvent>
+    <PostBuildEvent>xcopy /R /Y "$(SolutionDir)\bin\$(ConfigurationName)\Assembler.exe" "$(SolutionDir)..\CPUS\cpu\bin"</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
