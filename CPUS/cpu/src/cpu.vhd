@@ -25,8 +25,8 @@ ENTITY cpu IS
       File_Address_Read    : STRING    := "Init.dat";
       File_Address_Write   : STRING    := "MemCon.dat";
       Mem_Size_in_Word     : INTEGER   := 256;
-      Read_Delay           : INTEGER   := 0; 
-      Write_Delay          : INTEGER   := 0
+      Read_Delay           : INTEGER   := 10; 
+      Write_Delay          : INTEGER   := 10
    );
    PORT (
       clk:      	      IN    STD_LOGIC;
@@ -257,7 +257,7 @@ BEGIN
    
       if_i.mm_address         <= if_i.pc;
       IF    id_i.branch_requested = '1' THEN if_i.mm_address <= id_i.branch_addr;
-      ELSIF if_i.mem_is_free = '1' AND if_i.can_issue = '1'  THEN if_i.mm_address <= if_i.pc + 4;
+      ELSIF if_i.mem_is_free = '1' AND if_i.can_issue = '1' AND if_i.branch_ongoing = '0'  THEN if_i.mm_address <= if_i.pc + 4;
       END IF;
       
       --Select the instruction source depending on we are
@@ -278,6 +278,7 @@ BEGIN
          --Fetch complete, either issue immediately, or store for when ID unstalls
          IF (if_i.mem_tx_complete = '1' OR live_mode = '1' OR if_i.instr_ready = '1') THEN
             if_i.mem_tx_ongoing     <= '0';
+            if_i.branch_ongoing     <= '0';
          
             IF (if_i.can_issue = '1') THEN
                id.pc                <= if_i.pc;
@@ -299,6 +300,8 @@ BEGIN
             
             IF (if_i.mem_is_free = '1') THEN
                if_i.mem_tx_ongoing  <= '1';
+            ELSE
+               if_i.branch_ongoing  <= '1';
             END IF;
             
          ELSIF (if_i.mem_is_free = '1' and if_i.can_issue = '1') THEN

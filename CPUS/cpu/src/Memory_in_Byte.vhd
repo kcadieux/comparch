@@ -19,7 +19,8 @@ ENTITY Memory_in_Byte IS
 			wr_done:out std_logic; --indicates that the write operation has been done.
 			re :in std_logic;
 			rd_ready: out std_logic; --indicates that the read data is ready at the output.
-			data : inout std_logic_vector(Num_Bits_in_Byte-1 downto 0);        
+			data : inout std_logic_vector(Num_Bits_in_Byte-1 downto 0);  
+         data_test : inout std_logic_vector(Num_Bits_in_Byte-1 downto 0); 
 			initialize: in std_logic;
 			dump: in std_logic
 			
@@ -31,6 +32,8 @@ ARCHITECTURE Behavioural OF Memory_in_Byte IS
 	 type MEM_Type is array (0 to Mem_Size-1) of std_logic_vector(Num_Bits_in_Byte-1 downto 0);
 	 signal Memory: Mem_Type;     
 BEGIN
+
+   
 
     process (initialize, dump, clk) 
 		file file_pointer : text;
@@ -102,14 +105,16 @@ BEGIN
 		-- if not initializing nor dumping
 		elsif(clk'event and clk='1') then
 			data <= (others=>'Z'); --Since the data port is an INOUT 
+         data_test <= (others=>'Z'); --Since the data port is an INOUT 
 			if (re='1' and we='0') then
 				if(delay_cnt >= Read_Delay) then -- wait enough till Read_Dalys pass
 					data <= Memory(address);
+               data_test <= Memory(address);
 					delay_cnt := 0;
 					wr_done <= '0';
 					rd_ready <='1';
 				else
-					data <= (others=>'U');
+					--data <= (others=>'U');
 					delay_cnt := delay_cnt +1;
 					wr_done <= '0';
 					rd_ready <='0';
@@ -121,7 +126,7 @@ BEGIN
 					wr_done <= '1';
 					rd_ready <='0';
 				else
-					Memory(address)<= (others=>'U');
+					--Memory(address)<= (others=>'U');
 					delay_cnt := delay_cnt +1;
 					wr_done <= '0';
 					rd_ready <='0';

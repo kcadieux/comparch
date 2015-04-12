@@ -412,16 +412,14 @@ proc InitTest {testName} {
 	InitCPU "$TEST_FOLDER/$testName"
 }
 
-proc RunTest {testName} {
+proc RunUntilHalt {} {
 	global TARGET_CPU
 
-	InitTest $testName
-	
 	when -label test_prog {/cpu/finished_prog == '1' || /cpu/assertion == '1'} {
 		stop
 	}
 
-	run 10 us
+	run 1000 us
 
 	if {[exa /$TARGET_CPU/finished_prog] == 1} {
 		puts "SUCCESS"
@@ -434,6 +432,11 @@ proc RunTest {testName} {
 	}
 
 	nowhen test_prog
+}
+
+proc RunTest {testName} {
+	InitTest $testName
+	RunUntilHalt
 }
 
 proc test {args} {
