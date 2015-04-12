@@ -64,8 +64,10 @@ namespace MIKA
         public int Cycles { get; private set; }
 
         public int Branches { get; private set; }
+
+        public int MispredictedBranches { get; private set; }
         
-        public double Accuracy { get; private set; }
+        public string Accuracy { get; private set; }
 
         public bool Selected 
         {
@@ -207,9 +209,10 @@ namespace MIKA
                 var stats = rawStats[1].Split(' ','\r','\n');
                 Cycles = Convert.ToInt32(stats[0]);
                 Branches = Convert.ToInt32(stats[3]);
+                MispredictedBranches = Convert.ToInt32(stats[6]);
                 if (Branches != 0)
                 {
-                    Accuracy = ((float) Branches - (float) Convert.ToInt32(stats[6]))/(float) Branches*100.0f;
+                    Accuracy = (((float)Branches - (float)Convert.ToInt32(stats[6])) / (float)Branches * 100.0f).ToString("####0.00");
                 }
             }
 
