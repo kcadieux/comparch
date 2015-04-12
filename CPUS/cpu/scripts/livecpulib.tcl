@@ -422,7 +422,10 @@ proc RunUntilHalt {} {
 	run 1000 us
 
 	if {[exa /$TARGET_CPU/finished_prog] == 1} {
-		puts "SUCCESS"
+		set nbCycles   [exa -radix unsigned /$TARGET_CPU/cycle_count];
+		set nbBranches [exa -radix unsigned /$TARGET_CPU/branch_count];
+		set nbMispred  [exa -radix unsigned /$TARGET_CPU/branch_mispred];
+		puts "SUCCESS: cycles: $nbCycles - branches: $nbBranches - mispredictions: $nbMispred"
 	} elseif {[exa /$TARGET_CPU/assertion] == 1} {
 		set failureLocation [expr [exa -radix unsigned /$TARGET_CPU/assertion_pc] / 4 + 1];
 		puts "CPU FAILURE: assertion at instruction $failureLocation"

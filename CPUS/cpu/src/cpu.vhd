@@ -37,6 +37,9 @@ ENTITY cpu IS
       finished_prog:    OUT   STD_LOGIC;
       assertion:        OUT   STD_LOGIC;
       assertion_pc:     OUT   NATURAL;
+      cycle_count:      OUT   NATURAL;
+      branch_count:     OUT   NATURAL;
+      branch_mispred:   OUT   NATURAL;
       
       live_mode:        IN    STD_LOGIC := '0';
       live_instr:       IN    STD_LOGIC_VECTOR(INSTR_WIDTH-1 DOWNTO 0) := (others => '0');
@@ -57,9 +60,9 @@ ARCHITECTURE rtl OF cpu IS
    SIGNAL mm_we            : STD_LOGIC                                     := '0';
    SIGNAL mm_wr_done       : STD_LOGIC                                     := '0';
    SIGNAL mm_re            : STD_LOGIC                                     := '0';
-   SIGNAL mm_rd_ready     : STD_LOGIC                                     := '0';
-   SIGNAL mm_data         : STD_LOGIC_VECTOR(MEM_DATA_WIDTH-1 downto 0)   := (others => 'Z');
-   SIGNAL mm_initialize   : STD_LOGIC                                     := '0';
+   SIGNAL mm_rd_ready      : STD_LOGIC                                     := '0';
+   SIGNAL mm_data          : STD_LOGIC_VECTOR(MEM_DATA_WIDTH-1 downto 0)   := (others => 'Z');
+   SIGNAL mm_initialize    : STD_LOGIC                                     := '0';
    
    --Instruction decoder signals
    SIGNAL dec_opcode        : STD_LOGIC_VECTOR(5 DOWNTO 0)                  := (others => '0');
@@ -113,11 +116,19 @@ ARCHITECTURE rtl OF cpu IS
    SIGNAL mem_i            : MEM_INTERNAL    := DEFAULT_MEM_INTERNAL;
    SIGNAL wb_i             : WB_INTERNAL     := DEFAULT_WB_INTERNAL;
    
-   SIGNAL global_halt      : STD_LOGIC;
+   SIGNAL global_halt         : STD_LOGIC;
+   
+   SIGNAL cpu_cycle_count     : NATURAL         := 0;
+   SIGNAL cpu_branch_count    : NATURAL         := 0;
+   SIGNAL cpu_branch_mispred  : NATURAL         := 0;
    
 BEGIN
    
-   global_halt   <= ex_i.assertion OR wb_i.halt;
+   global_halt    <= ex_i.assertion OR wb_i.halt;
+   
+   cycle_count    <= cpu_cycle_count;
+   branch_count   <= cpu_branch_count;
+   branch_mispred <= cpu_branch_mispred;
    
    main_memory : ENTITY work.Main_Memory
       GENERIC MAP (
@@ -193,6 +204,10 @@ BEGIN
    BEGIN
 
       IF (clk'event AND clk = '1') THEN
+      
+         --Update cycle count
+         cpu_cycle_count <= cpu_cycle_count + 1;
+      
          CASE current_state IS
             WHEN INITIAL =>
                current_state <= RUNNING;
@@ -376,6 +391,11 @@ BEGIN
       END IF;
       
       IF (clk'event AND clk = '1') THEN
+      
+         --Update branch count if this is a branch
+         IF (IS_BRANCH_OP(id)) THEN
+            cpu_branch_count    <= cpu_branch_count + 1;
+         END IF;
       
          IF (ex_i.is_stalled = '0' AND id_i.is_stalled = '1') THEN
             ex                  <= DEFAULT_PIPE_REG;
