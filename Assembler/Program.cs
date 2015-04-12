@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Runtime.Remoting.Metadata.W3cXsd2001;
@@ -9,9 +10,17 @@ namespace Assembler
 {
     class Program
     {
+        Dictionary<String, int> LabelDictionary;
+
+        static void Main(string[] args)
+        {
+            new Program(args);
+        }
+
+        public List<Instruction> Instructions = new List<Instruction>(); 
         public static string ApplicationDirectory =
             Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
-        static void Main(string[] args)
+        public Program(string[] args)
         {
             // Help option
             if (args == null || args.Length == 0 || args.Any(a => a == "-h"))
@@ -74,8 +83,16 @@ namespace Assembler
 
                     if (String.IsNullOrEmpty(errorLog))
                     {
+                        Console.Out.WriteLine("The binary file has been successfuly generated.");
+                        Console.Out.WriteLine("Now checking to reorder some of the code.");
+                        Reorder();
+
+                        foreach (var instruct in Instructions)
+                        {
+                            writer.Write(instruct.MachineCode);
+                        }
+
                         byteWriter.Write(writer.ToString());
-                        Console.Out.WriteLine("The binary file has been successfuly generated");
                         return;
                     }
 
@@ -88,7 +105,95 @@ namespace Assembler
             
         }
 
-        public static string Assemble(TextReader source, StringWriter writer, bool labelPass)
+        public void Reorder()
+        {
+            int instructionNumber = 0;
+            foreach (var instruction in Instructions)
+            {
+                List<Register> forbidden = new List<Register>();
+                if (instruction.Operation == Operation.Lw)
+                {
+                    if (instructionNumber + 1 == Instructions.Count)
+                    {
+                        continue;
+                    }
+
+
+                    if ((Instructions.ElementAt(instructionNumber + 1).RegisterD == instruction.RegisterS ||
+                        Instructions.ElementAt(instructionNumber + 1).RegisterT == instruction.RegisterS) &&
+                        Instructions.ElementAt(instructionNumber + 1).Operation != Operation.Asrt &&
+                        Instructions.ElementAt(instructionNumber + 1).Operation != Operation.Asrti &&
+                        Instructions.ElementAt(instructionNumber + 1).Operation != Operation.Halt &&
+                        Instructions.ElementAt(instructionNumber + 1).Operation != Operation.Beq &&
+                        Instructions.ElementAt(instructionNumber + 1).Operation != Operation.Bne)
+                    {
+                        // Need a swap
+                        forbidden.Add(instruction.RegisterS);
+                        var potentialSwaps = Instructions.GetRange(instructionNumber + 2, Instructions.Count - instructionNumber - 2);
+                        int potentialInstructionIndex = instructionNumber + 2;
+                        foreach (var potentialInst in potentialSwaps)
+                        {
+                            if (potentialInst.Operation == Operation.Beq ||
+                                potentialInst.Operation == Operation.Bne ||
+                                potentialInst.Operation == Operation.J ||
+                                potentialInst.Operation == Operation.Halt ||
+                                potentialInst.Operation == Operation.Asrt ||
+                                potentialInst.Operation == Operation.Asrti)
+                            {
+                                break;
+                            }
+
+                            if (LabelDictionary.Values.Contains(potentialInstructionIndex))
+                            {
+                                break;
+                            }
+                            
+                            if (!forbidden.Contains(potentialInst.RegisterD) &&
+                                !forbidden.Contains(potentialInst.RegisterS) &&
+                                !forbidden.Contains(potentialInst.RegisterT))
+                            {
+                                // Swapping
+                                var regD = Instructions.ElementAt(instructionNumber + 1).RegisterD;
+                                var regS = Instructions.ElementAt(instructionNumber + 1).RegisterS;
+                                var regT = Instructions.ElementAt(instructionNumber + 1).RegisterT;
+                                var op = Instructions.ElementAt(instructionNumber + 1).Operation;
+                                var mc = Instructions.ElementAt(instructionNumber + 1).MachineCode;
+                                Instructions.ElementAt(instructionNumber + 1).Swap(Instructions.ElementAt(potentialInstructionIndex));
+                                Instructions.ElementAt(potentialInstructionIndex).SwapRegisterD(regD);
+                                Instructions.ElementAt(potentialInstructionIndex).SwapRegisterS(regS);
+                                Instructions.ElementAt(potentialInstructionIndex).SwapRegisterT(regT);
+                                Instructions.ElementAt(potentialInstructionIndex).SwapOperation(op);
+                                Instructions.ElementAt(potentialInstructionIndex).SwapMachineCode(mc);
+                                break;
+                            }
+                            else
+                            {
+                                if (potentialInst.RegisterD != Register.NONE && potentialInst.RegisterD != Register.Zero)
+                                {
+                                    forbidden.Add(potentialInst.RegisterD);
+                                }
+
+                                if (potentialInst.RegisterT != Register.NONE && potentialInst.RegisterT != Register.Zero)
+                                {
+                                    forbidden.Add(potentialInst.RegisterT);
+                                }
+
+                                if (potentialInst.RegisterS != Register.NONE && potentialInst.RegisterS != Register.Zero)
+                                {
+                                    forbidden.Add(potentialInst.RegisterS);
+                                }
+                            }
+
+                            potentialInstructionIndex++;
+                        }
+                    }
+                }
+
+                instructionNumber++;
+            }
+        }
+
+        public string Assemble(TextReader source, StringWriter writer, bool labelPass)
         {
             string log = String.Empty;
             int instruction = 0;
@@ -163,164 +268,11 @@ namespace Assembler
                 Operation op = Tools.StringToOperation(words[0]);
                 if (op != Operation.None)
                 {
-                    switch (op)
-                    {
-                        case Operation.Add:
-                            writer.Write("000000");
-                            error = !EncodingThreeRegisters(writer, ref log, words);
-                            writer.Write("00000100000");
-                            break;
-                        case Operation.Sub:
-                            writer.Write("000000");
-                            error = !EncodingThreeRegisters(writer, ref log, words);
-                            writer.Write("00000100010");
-                            break;
-                        case Operation.Addi:
-                            writer.Write("001000");
-                            error = !ImmediateEncodingTwoRegisters(writer, ref log, words, 16);
-                            break;
-                        case Operation.Mult:
-                            writer.Write("000000");
-                            error = !EncodingTwoRegisters(writer, ref log, words);
-                            writer.Write("0000000000011000");
-                            break;
-                        case Operation.Div:
-                            writer.Write("000000");
-                            error = !EncodingTwoRegisters(writer, ref log, words);
-                            writer.Write("0000000000011010");
-                            break;
-                        case Operation.Slt:
-                            writer.Write("000000");
-                            error = !EncodingThreeRegisters(writer, ref log, words);
-                            writer.Write("00000101010");
-                            break;
-                        case Operation.Slti:
-                            writer.Write("001010");
-                            error = !ImmediateEncodingTwoRegisters(writer, ref log, words, 16);
-                            break;
-                        case Operation.And:
-                            writer.Write("000000");
-                            error = !EncodingThreeRegisters(writer, ref log, words);
-                            writer.Write("00000100100");
-                            break;
-                        case Operation.Or:
-                            writer.Write("000000");
-                            error = !EncodingThreeRegisters(writer, ref log, words);
-                            writer.Write("00000100101");
-                            break;
-                        case Operation.Nor:
-                            writer.Write("000000");
-                            error = !EncodingThreeRegisters(writer, ref log, words);
-                            writer.Write("00000100111");
-                            break;
-                        case Operation.Xor:
-                            writer.Write("000000");
-                            error = !EncodingThreeRegisters(writer, ref log, words);
-                            writer.Write("00000100110");
-                            break;
-                        case Operation.Andi:
-                            writer.Write("001100");
-                            error = !ImmediateEncodingTwoRegisters(writer, ref log, words, 16);
-                            break;
-                        case Operation.Ori:
-                            writer.Write("001101");
-                            error = !ImmediateEncodingTwoRegisters(writer, ref log, words, 16);
-                            break;
-                        case Operation.Xori:
-                            writer.Write("001110");
-                            error = !ImmediateEncodingTwoRegisters(writer, ref log, words, 16);
-                            break;
-                        case Operation.Mfhi:
-                            writer.Write("0000000000000000");
-                            error = !EncodingOneRegister(writer, ref log, words);
-                            writer.Write("00000010000");
-                            break;
-                        case Operation.Mflo:
-                            writer.Write("0000000000000000");
-                            error = !EncodingOneRegister(writer, ref log, words);
-                            writer.Write("00000010010");
-                            break;
-                        case Operation.Lui:
-                            writer.Write("001111");
-                            writer.Write("00000"); // Ignored by processor
-                            error = !ImmediateEncodingOneRegister(writer, ref log, words);
-                            break;
-                        case Operation.Sll:
-                            writer.Write("000000");
-                            writer.Write("00000"); // Ignored by processor
-                            error = !ImmediateEncoding0To32TwoRegisters(writer, ref log, words);
-                            writer.Write("000000");
-                            break;
-                        case Operation.Srl: // Due to confusing specs, I added both
-                        case Operation.Slr:
-                            writer.Write("000000");
-                            writer.Write("00000"); // Ignored by processor
-                            error = !ImmediateEncoding0To32TwoRegisters(writer, ref log, words);
-                            writer.Write("000010");
-                            break;
-                        case Operation.Sra:
-                            writer.Write("000000");
-                            writer.Write("00000"); // Ignored by processor
-                            error = !ImmediateEncoding0To32TwoRegisters(writer, ref log, words);
-                            writer.Write("000011");
-                            break;
-                        case Operation.Lw:
-                            writer.Write("100011");
-                            error = !ImmediateEncodingTwoRegistersOffset(writer, ref log, words);
-                            break;
-                        case Operation.Lb:
-                            writer.Write("100000");
-                            error = !ImmediateEncodingTwoRegistersOffset(writer, ref log, words);
-                            break;
-                        case Operation.Sw:
-                            writer.Write("101011");
-                            error = !ImmediateEncodingTwoRegistersOffset(writer, ref log, words);
-                            break;
-                        case Operation.Sb:
-                            writer.Write("101000");
-                            error = !ImmediateEncodingTwoRegistersOffset(writer, ref log, words);
-                            break;
-                        case Operation.Beq:
-                            writer.Write("000100");
-                            error = !EncodingTwoRegisters(writer, ref log, words);
-                            error &= !LabelEncodingRelative16(writer, ref log, words, labelDictionary, instruction + 1);
-                            break;
-                        case Operation.Bne:
-                            writer.Write("000101");
-                            error = !EncodingTwoRegisters(writer, ref log, words);
-                            error &= !LabelEncodingRelative16(writer, ref log, words, labelDictionary, instruction + 1);
-                            break;
-                        case Operation.J:
-                            writer.Write("000010");
-                            error = !LabelEncoding26(writer, ref log, words, labelDictionary);
-                            break;
-                        case Operation.Jr:
-                            writer.Write("000000");
-                            error = !EncodingOneRegister(writer, ref log, words);
-                            writer.Write("000000000000000001000");
-                            break;
-                        case Operation.Jal:
-                            writer.Write("000011");
-                            error = !LabelEncoding26(writer, ref log, words, labelDictionary);
-                            break;
-                        case Operation.Asrt:
-                            writer.Write("010100");
-                            error = !EncodingTwoRegisters(writer, ref log, words);
-                            writer.Write("0000000000000000");
-                            break;
-                        case Operation.Asrti:
-                            writer.Write("010101");
-                            writer.Write("00000"); // Ignored by processor
-                            error = !ImmediateEncodingOneRegister(writer, ref log, words);
-                            break;
-                        case Operation.Halt:
-                            writer.Write("01011000000000000000000000000000");
-                            break;
-                        default:
-                            break;
-                    }
+                    var inst = new Instruction(op, words, instruction, ref labelDictionary, ref log);
+                    Instructions.Add(inst);
+                    //writer.Write(inst.MachineCode);
 
-                    if (error)
+                    if (inst.Error)
                     {
                         break;
                     }
@@ -333,18 +285,20 @@ namespace Assembler
                 }
             }
 
+            LabelDictionary = labelDictionary;
             return log;
         }
 
         public static void FirstPassThroughAssembly(List<String> lines, Dictionary<string, int> labelDictionary)
         {
             int instruction = 0;
-
+            int lineNumber = 0; 
             foreach (var line in lines)
             {
                 // Comment line
                 if (String.IsNullOrEmpty(line) || line[0] == '#')
                 {
+                    lineNumber++;
                     continue;
                 }
 
@@ -352,11 +306,13 @@ namespace Assembler
 
                 if (words.Length == 0)
                 {
+                    lineNumber++;
                     continue;
                 }
 
                 if (words[0].StartsWith("#"))
                 {
+                    lineNumber++;
                     continue;
                 }
 
@@ -380,6 +336,8 @@ namespace Assembler
                 {
                     instruction++;
                 }
+                
+                lineNumber++;
             }
         }
 
