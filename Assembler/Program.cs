@@ -159,12 +159,17 @@ namespace Assembler
                                 var op = Instructions.ElementAt(instructionNumber + 1).Operation;
                                 var mc = Instructions.ElementAt(instructionNumber + 1).MachineCode;
                                 Instructions.ElementAt(instructionNumber + 1).Swap(Instructions.ElementAt(potentialInstructionIndex));
-                                Instructions.ElementAt(potentialInstructionIndex).SwapRegisterD(regD);
-                                Instructions.ElementAt(potentialInstructionIndex).SwapRegisterS(regS);
-                                Instructions.ElementAt(potentialInstructionIndex).SwapRegisterT(regT);
-                                Instructions.ElementAt(potentialInstructionIndex).SwapOperation(op);
-                                Instructions.ElementAt(potentialInstructionIndex).SwapMachineCode(mc);
-                                break;
+
+                                var temp = Instructions.ElementAt(potentialInstructionIndex);
+                                Instructions.Insert(instructionNumber + 2, temp);
+                                Instructions.RemoveAt(potentialInstructionIndex+1);
+
+                                Instructions.ElementAt(instructionNumber + 2).SwapRegisterD(regD);
+                                Instructions.ElementAt(instructionNumber + 2).SwapRegisterS(regS);
+                                Instructions.ElementAt(instructionNumber + 2).SwapRegisterT(regT);
+                                Instructions.ElementAt(instructionNumber + 2).SwapOperation(op);
+                                Instructions.ElementAt(instructionNumber + 2).SwapMachineCode(mc);
+                                return;
                             }
                             else
                             {
