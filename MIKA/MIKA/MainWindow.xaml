@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:forms="clr-namespace:System.Windows.Forms;assembly=System.Windows.Forms"
         mc:Ignorable="d"
-        Title="MIKA Test Suite" Height="600" Width="800" Icon="mika.ico">
+        Title="MIKA Test Suite" Height="700" Width="1000" Icon="mika.ico">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="94" />
@@ -50,7 +50,7 @@
                 <DataGridTemplateColumn Header="Name" Width="SizeToCells" IsReadOnly="True">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
-                            <Button Width="200" 
+                            <Button Width="160" 
                                     VerticalAlignment="Center" 
                                     Content="{Binding Path=Name}" 
                                     Command="{Binding Path=RunTest}"/>
@@ -60,9 +60,9 @@
                 <DataGridTemplateColumn Header="LiveCPU" Width="SizeToCells" IsReadOnly="True">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
-                            <Button Width="125" 
+                            <Button Width="75" 
                                     VerticalAlignment="Center" 
-                                    Content="Live CPU Debugging" 
+                                    Content="Debug" 
                                     Command="{Binding Path=LiveCPU}"/>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
@@ -73,7 +73,7 @@
                             <TextBlock Text="{Binding Path=Status}"
                                        Foreground="{Binding Path=TextColor}"
                                        FontWeight="UltraBold" 
-                                       FontSize="22" 
+                                       FontSize="16" 
                                        VerticalAlignment="Center"
                                        HorizontalAlignment="Center"/>
                         </DataTemplate>
@@ -83,6 +83,30 @@
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <Image Source="{Binding ImageSource}" />
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTemplateColumn Header="CPU Cycles" IsReadOnly="True">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Path=Cycles, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}" 
+                                       TextWrapping="Wrap"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTemplateColumn Header="Branches" IsReadOnly="True">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Path=Branches, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}" 
+                                       TextWrapping="Wrap"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTemplateColumn Header="Accuracy (%)" IsReadOnly="True">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Path=Accuracy, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}" 
+                                       TextWrapping="Wrap"/>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>

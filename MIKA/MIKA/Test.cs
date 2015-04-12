@@ -2,6 +2,8 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Windows;
 using System.Windows.Input;
@@ -58,6 +60,12 @@ namespace MIKA
         public string Name { get; private set; }
 
         public State State { get; private set; }
+
+        public int Cycles { get; private set; }
+
+        public int Branches { get; private set; }
+        
+        public double Accuracy { get; private set; }
 
         public bool Selected 
         {
@@ -169,10 +177,12 @@ namespace MIKA
                 exeProcess.WaitForExit();
                 Log = exeProcess.StandardOutput.ReadToEnd();
             }
-            
+            string tempLog = "";
+
             if (Log.Contains("SUCCESS"))
             {
                 State = State.Pass;
+                tempLog = Log;
                 Log = String.Empty;
                 DisplayLog = false;
             }
@@ -191,10 +201,25 @@ namespace MIKA
                 DisplayLog = true;
             }
 
+            var rawStats = Regex.Split(tempLog, "cycles: ");
+            if (rawStats.Count() > 1)
+            {
+                var stats = rawStats[1].Split(' ','\r','\n');
+                Cycles = Convert.ToInt32(stats[0]);
+                Branches = Convert.ToInt32(stats[3]);
+                if (Branches != 0)
+                {
+                    Accuracy = ((float) Branches - (float) Convert.ToInt32(stats[6]))/(float) Branches*100.0f;
+                }
+            }
+
             OnChanged("ImageSource");
             OnChanged("TextColor");
             OnChanged("Status");
             OnChanged("Log");
+            OnChanged("Cycles");
+            OnChanged("Branches");
+            OnChanged("Accuracy");
             //OnChanged("DisplayLog");
 
             mainWindow.TestDone();
