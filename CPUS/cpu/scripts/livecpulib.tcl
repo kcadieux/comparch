@@ -421,16 +421,17 @@ proc RunUntilHalt {} {
 
 	run 1000 us
 
+	set nbCycles   [exa -radix unsigned /$TARGET_CPU/cycle_count];
+	set nbBranches [exa -radix unsigned /$TARGET_CPU/branch_count];
+	set nbMispred  [exa -radix unsigned /$TARGET_CPU/branch_mispred];
+	
 	if {[exa /$TARGET_CPU/finished_prog] == 1} {
-		set nbCycles   [exa -radix unsigned /$TARGET_CPU/cycle_count];
-		set nbBranches [exa -radix unsigned /$TARGET_CPU/branch_count];
-		set nbMispred  [exa -radix unsigned /$TARGET_CPU/branch_mispred];
 		puts "SUCCESS: cycles: $nbCycles - branches: $nbBranches - mispredictions: $nbMispred"
 	} elseif {[exa /$TARGET_CPU/assertion] == 1} {
 		set failureLocation [expr [exa -radix unsigned /$TARGET_CPU/assertion_pc] / 4 + 1];
-		puts "CPU FAILURE: assertion at instruction $failureLocation"
+		puts "CPU FAILURE: assertion at instruction $failureLocation - cycles: $nbCycles - branches: $nbBranches - mispredictions: $nbMispred"
 	} else {
-		puts "CPU FAILURE: program did not finish before timeout"
+		puts "CPU FAILURE: program did not finish before timeout - cycles: $nbCycles - branches: $nbBranches - mispredictions: $nbMispred"
 	
 	}
 
