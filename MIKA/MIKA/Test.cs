@@ -222,6 +222,7 @@ namespace MIKA
             OnChanged("Log");
             OnChanged("Cycles");
             OnChanged("Branches");
+            OnChanged("MispredictedBranches");
             OnChanged("Accuracy");
             //OnChanged("DisplayLog");
 
