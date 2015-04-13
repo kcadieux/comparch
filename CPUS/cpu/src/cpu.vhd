@@ -25,8 +25,8 @@ ENTITY cpu IS
       File_Address_Read    : STRING    := "Init.dat";
       File_Address_Write   : STRING    := "MemCon.dat";
       Mem_Size_in_Word     : INTEGER   := 256;
-      Read_Delay           : INTEGER   := 10; 
-      Write_Delay          : INTEGER   := 10
+      Read_Delay           : INTEGER   := 0; 
+      Write_Delay          : INTEGER   := 0
    );
    PORT (
       clk:      	      IN    STD_LOGIC;
@@ -280,7 +280,7 @@ BEGIN
       if_i.instr_selection    <= mm_data;
       IF (live_mode = '1') THEN
          if_i.instr_selection <= live_instr;
-      ELSIF (if_i.instr_ready = '1') THEN
+      ELSIF (if_i.instr_buffered = '1') THEN
          if_i.instr_selection <= if_i.instr;
       END IF;
    
@@ -291,7 +291,7 @@ BEGIN
          END IF;
          
          --Fetch complete, either issue immediately, or store for when ID unstalls
-         IF (if_i.mem_tx_complete = '1' OR live_mode = '1' OR if_i.instr_ready = '1') THEN
+         IF (if_i.mem_tx_complete = '1' OR live_mode = '1' OR if_i.instr_buffered = '1') THEN
             if_i.mem_tx_ongoing     <= '0';
             if_i.branch_ongoing     <= '0';
          
@@ -299,19 +299,19 @@ BEGIN
                id.pc                <= if_i.pc;
                id.pos               <= POS_ID;
                idx.instr            <= if_i.instr_selection;
-               if_i.instr_ready     <= '0';
+               if_i.instr_buffered     <= '0';
             ELSE
                if_i.instr           <= if_i.instr_selection;
-               if_i.instr_ready     <= '1';
+               if_i.instr_buffered     <= '1';
             END IF;
          END IF;
          
          --Start fetching an instruction
          IF (live_mode = '1') THEN
-            if_i.instr_ready     <= '0';
+            if_i.instr_buffered     <= '0';
          ELSIF (id_i.branch_requested = '1') THEN
             if_i.pc              <= id_i.branch_addr;
-            if_i.instr_ready     <= '0';
+            if_i.instr_buffered     <= '0';
             
             IF (if_i.mem_is_free = '1') THEN
                if_i.mem_tx_ongoing  <= '1';
@@ -393,7 +393,7 @@ BEGIN
       IF (clk'event AND clk = '1') THEN
       
          --Update branch count if this is a branch
-         IF (IS_BRANCH_OP(id)) THEN
+         IF (IS_BRANCH_OP(id) AND id_i.is_stalled = '0') THEN
             cpu_branch_count    <= cpu_branch_count + 1;
          END IF;
       

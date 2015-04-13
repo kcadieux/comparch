@@ -91,6 +91,7 @@ PACKAGE cpu_lib IS
    TYPE IF_INTERNAL IS RECORD
       pc                   : NATURAL;
       instr_ready          : STD_LOGIC;
+      instr_buffered       : STD_LOGIC;
       instr                : STD_LOGIC_VECTOR(INSTR_WIDTH-1 DOWNTO 0);
       instr_selection      : STD_LOGIC_VECTOR(INSTR_WIDTH-1 DOWNTO 0);
       mem_is_free          : STD_LOGIC;
@@ -105,6 +106,7 @@ PACKAGE cpu_lib IS
    CONSTANT DEFAULT_IF_INTERNAL : IF_INTERNAL := (
       pc                   => 0,
       instr_ready          => '0',
+      instr_buffered       => '0',
       instr                => (others => '0'),
       instr_selection      => (others => '0'),
       mem_is_free          => '0',
