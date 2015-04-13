@@ -99,7 +99,7 @@ PACKAGE cpu_lib IS
       mem_tx_ongoing       : STD_LOGIC;
       mem_tx_complete      : STD_LOGIC;
       mem_lock             : STD_LOGIC;
-      branch_ongoing       : STD_LOGIC;
+      need_mem             : STD_LOGIC;
       mm_address           : NATURAL;
    END RECORD;
    
@@ -114,7 +114,7 @@ PACKAGE cpu_lib IS
       mem_tx_ongoing       => '1',
       mem_tx_complete      => '0',
       mem_lock             => '0',
-      branch_ongoing       => '0',
+      need_mem             => '0',
       mm_address           => 0
    );
    

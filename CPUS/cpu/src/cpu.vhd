@@ -25,8 +25,8 @@ ENTITY cpu IS
       File_Address_Read    : STRING    := "Init.dat";
       File_Address_Write   : STRING    := "MemCon.dat";
       Mem_Size_in_Word     : INTEGER   := 256;
-      Read_Delay           : INTEGER   := 1; 
-      Write_Delay          : INTEGER   := 1
+      Read_Delay           : INTEGER   := 10; 
+      Write_Delay          : INTEGER   := 10
    );
    PORT (
       clk:      	      IN    STD_LOGIC;
@@ -260,9 +260,10 @@ BEGIN
    
       --Lock memory if either no request is coming from the MEM stage,
       --or if a current memory transaction is ongoing and we need to finish it.
-      if_i.mem_lock           <= if_i.mem_tx_ongoing OR NOT mem_i.mem_request_lock;
+      if_i.mem_lock           <= if_i.mem_tx_ongoing OR (NOT mem_i.mem_request_lock AND if_i.need_mem);
       if_i.mem_tx_complete    <= if_i.mem_tx_ongoing AND mm_rd_ready;
-      if_i.mem_is_free        <= (if_i.mem_tx_complete OR NOT if_i.mem_tx_ongoing) AND NOT mem_i.mem_request_lock; 
+      if_i.mem_is_free        <= (if_i.mem_tx_complete OR NOT if_i.mem_tx_ongoing) AND NOT mem_i.mem_request_lock;
+      if_i.need_mem           <= NOT if_i.instr_buffered OR id_i.branch_requested;
       
       if_i.instr_ready        <= if_i.mem_tx_complete OR if_i.instr_buffered;
       
@@ -273,11 +274,10 @@ BEGIN
    
       if_i.mm_address         <= if_i.pc;
       IF    id_i.branch_requested = '1' THEN if_i.mm_address <= id_i.branch_addr;
-      ELSIF if_i.mem_is_free = '1' AND if_i.can_issue = '1' AND if_i.branch_ongoing = '0'  THEN if_i.mm_address <= if_i.pc + 4;
+      ELSIF if_i.mem_is_free = '1' AND if_i.mem_tx_ongoing = '1' THEN if_i.mm_address <= if_i.pc + 4;
       END IF;
       
-      --Select the instruction source depending on we are
-      --in live mode or if we already have an instr in our buffer
+      --Select the instruction source
       if_i.instr_selection    <= mm_data;
       IF (if_i.instr_buffered = '1') THEN
          if_i.instr_selection <= if_i.instr;
@@ -289,35 +289,34 @@ BEGIN
             idx   <= DEFAULT_ID;
          END IF;
          
-         --Fetch complete, either issue immediately, or store for when ID unstalls
-         IF (if_i.instr_ready = '1') THEN
-            if_i.mem_tx_ongoing     <= '0';
-            if_i.branch_ongoing     <= '0';
-         
-            IF (if_i.can_issue = '1') THEN
+         --Instruction issue
+         IF (if_i.can_issue = '1') THEN
+            IF (if_i.instr_ready = '1') THEN
                id.pc                <= if_i.pc;
                id.pos               <= POS_ID;
                idx.instr            <= if_i.instr_selection;
-               if_i.instr_buffered     <= '0';
-            ELSE
-               if_i.instr           <= if_i.instr_selection;
-               if_i.instr_buffered  <= '1';
+               
+               if_i.mem_tx_ongoing  <= '0';
+               if_i.instr_buffered  <= '0';
+               if_i.pc              <= if_i.pc + 4;
             END IF;
+
+         ELSIF (if_i.mem_tx_complete = '1') THEN
+            if_i.instr           <= mm_data;
+            if_i.mem_tx_ongoing  <= '0';
+            if_i.instr_buffered  <= '1';
          END IF;
          
-         --Start fetching an instruction
+         --Manage branches
          IF (id_i.branch_requested = '1') THEN
+            if_i.instr_buffered  <= '0';
             if_i.pc              <= id_i.branch_addr;
-            if_i.instr_buffered     <= '0';
-            
             IF (if_i.mem_is_free = '1') THEN
-               if_i.mem_tx_ongoing  <= '1';
-            ELSE
-               if_i.branch_ongoing  <= '1';
+               --if_i.pc           <= id_i.branch_addr + 4;
             END IF;
-            
-         ELSIF (if_i.mem_is_free = '1' and if_i.can_issue = '1') THEN
-            if_i.pc              <= if_i.pc + 4;
+         END IF;
+     
+         IF (if_i.mem_is_free = '1' AND if_i.need_mem = '1') THEN
             if_i.mem_tx_ongoing  <= '1';
          END IF;
          
