@@ -249,6 +249,7 @@ proc CompileCPU {} {
     CompileComponent register_file
     CompileComponent instr_decoder
 	CompileComponent cpu_lib
+	CompileComponent cache
     CompileComponent cpu
 }
 
