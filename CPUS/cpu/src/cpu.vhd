@@ -26,8 +26,8 @@ ENTITY cpu IS
       File_Address_Read    : STRING    := "Init.dat";
       File_Address_Write   : STRING    := "MemCon.dat";
       Mem_Size_in_Word     : INTEGER   := 256;
-      Read_Delay           : INTEGER   := 0; 
-      Write_Delay          : INTEGER   := 0
+      Read_Delay           : INTEGER   := 10; 
+      Write_Delay          : INTEGER   := 10
    );
    PORT (
       clk:      	      IN    STD_LOGIC;
