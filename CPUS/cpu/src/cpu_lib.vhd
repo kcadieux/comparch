@@ -100,6 +100,7 @@ PACKAGE cpu_lib IS
       mem_tx_complete      : STD_LOGIC;
       mem_lock             : STD_LOGIC;
       need_mem             : STD_LOGIC;
+      branch_predicted     : STD_LOGIC;
       mm_address           : NATURAL;
    END RECORD;
    
@@ -115,6 +116,7 @@ PACKAGE cpu_lib IS
       mem_tx_complete      => '0',
       mem_lock             => '0',
       need_mem             => '0',
+      branch_predicted     => '0',
       mm_address           => 0
    );
    

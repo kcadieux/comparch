@@ -92,6 +92,7 @@ proc AddWaves {} {
 	;#IF stage signals
 	add wave -group "IF Stage"  -radix unsigned sim:/$TARGET_CPU/if_i.pc\
 								sim:/$TARGET_CPU/if_i.instr_ready\
+								sim:/$TARGET_CPU/if_i.instr_buffered\
 								-radix binary sim:/$TARGET_CPU/if_i.instr\
 								-radix binary sim:/$TARGET_CPU/if_i.instr_selection\
 								sim:/$TARGET_CPU/if_i.can_issue\
@@ -99,6 +100,8 @@ proc AddWaves {} {
 	                            sim:/$TARGET_CPU/if_i.mem_tx_ongoing\
 								sim:/$TARGET_CPU/if_i.mem_tx_complete\
 								sim:/$TARGET_CPU/if_i.mem_lock\
+								sim:/$TARGET_CPU/if_i.need_mem\
+								sim:/$TARGET_CPU/if_i.branch_predicted\
 								-radix unsigned sim:/$TARGET_CPU/if_i.mm_address
 								
 	;#ID stage signals

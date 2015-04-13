@@ -26,8 +26,8 @@ ENTITY cpu IS
       File_Address_Read    : STRING    := "Init.dat";
       File_Address_Write   : STRING    := "MemCon.dat";
       Mem_Size_in_Word     : INTEGER   := 256;
-      Read_Delay           : INTEGER   := 0; 
-      Write_Delay          : INTEGER   := 0
+      Read_Delay           : INTEGER   := 10; 
+      Write_Delay          : INTEGER   := 10
    );
    PORT (
       clk:      	      IN    STD_LOGIC;
@@ -270,18 +270,27 @@ BEGIN
       if_i.mem_lock           <= if_i.mem_tx_ongoing OR (NOT mem_i.mem_request_lock AND if_i.need_mem);
       if_i.mem_tx_complete    <= if_i.mem_tx_ongoing AND mm_rd_ready;
       if_i.mem_is_free        <= (if_i.mem_tx_complete OR NOT if_i.mem_tx_ongoing) AND NOT mem_i.mem_request_lock;
-      if_i.need_mem           <= NOT if_i.instr_buffered OR id_i.branch_requested;
+      if_i.need_mem           <= NOT if_i.instr_buffered OR (id_i.branch_requested AND NOT if_i.branch_predicted);
+      IF (if_i.instr_buffered = '1' AND if_i.mem_is_free = '1' AND if_i.can_issue = '1') THEN
+         if_i.need_mem <= '1';
+      END IF;
       
       if_i.instr_ready        <= if_i.mem_tx_complete OR if_i.instr_buffered;
       
       if_i.can_issue          <= '0';
-      IF (id_i.is_stalled = '0' AND id_i.branch_requested = '0' AND id_i.halt_requested = '0' AND global_halt = '0') THEN
+      IF (id_i.is_stalled = '0' AND (id_i.branch_requested = '0' OR if_i.branch_predicted = '1') AND id_i.halt_requested = '0' AND global_halt = '0') THEN
          if_i.can_issue       <= '1';
       END IF;
    
+      if_i.branch_predicted   <= '0';
+      IF (if_i.pc = id_i.branch_addr AND id_i.branch_requested = '1') THEN
+         if_i.branch_predicted   <= '1';
+      END IF;
+   
       if_i.mm_address         <= if_i.pc;
-      IF    id_i.branch_requested = '1' THEN if_i.mm_address <= id_i.branch_addr;
+      IF id_i.branch_requested = '1' AND if_i.branch_predicted = '0' THEN if_i.mm_address <= id_i.branch_addr;
       ELSIF if_i.mem_is_free = '1' AND if_i.mem_tx_ongoing = '1' THEN if_i.mm_address <= if_i.pc + 4;
+      ELSIF if_i.instr_buffered = '1' AND if_i.mem_is_free = '1' AND if_i.can_issue = '1' THEN if_i.mm_address <= if_i.pc + 4;
       END IF;
       
       --Select the instruction source
@@ -317,12 +326,11 @@ BEGIN
          END IF;
          
          --Manage branches
-         IF (id_i.branch_requested = '1') THEN
+         IF (id_i.branch_requested = '1' AND if_i.branch_predicted = '0') THEN
             if_i.instr_buffered  <= '0';
             if_i.pc              <= id_i.branch_addr;
-            IF (if_i.mem_is_free = '1') THEN
-               --if_i.pc           <= id_i.branch_addr + 4;
-            END IF;
+            
+            cpu_branch_mispred   <= cpu_branch_mispred + 1;
          END IF;
      
          IF (if_i.mem_is_free = '1' AND if_i.need_mem = '1') THEN
@@ -382,7 +390,8 @@ BEGIN
              (    id_i.forward_rs AND NOT id_i.forward_rt AND dec_opcode = OP_BEQ AND mem.result     =  reg_read2_data) OR
              (    id_i.forward_rs AND NOT id_i.forward_rt AND dec_opcode = OP_BNE AND mem.result     /= reg_read2_data) OR
              (NOT id_i.forward_rs AND     id_i.forward_rt AND dec_opcode = OP_BEQ AND reg_read1_data =  mem.result) OR
-             (NOT id_i.forward_rs AND     id_i.forward_rt AND dec_opcode = OP_BNE AND reg_read1_data /= mem.result)) THEN
+             (NOT id_i.forward_rs AND     id_i.forward_rt AND dec_opcode = OP_BNE AND reg_read1_data /= mem.result) OR
+             (    id_i.forward_rs AND     id_i.forward_rt AND dec_opcode = OP_BEQ)) THEN
              
             id_i.branch_addr        <= to_integer(unsigned(dec_branch_addr));
          END IF;
