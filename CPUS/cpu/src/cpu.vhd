@@ -13,6 +13,7 @@ library ieee;
 
 use ieee.std_logic_1164.all; -- allows use of the std_logic_vector type
 use ieee.numeric_std.all; -- allows use of the unsigned type
+use STD.textio.all;
 
 use work.architecture_constants.all;
 use work.op_codes.all;
@@ -25,14 +26,16 @@ ENTITY cpu IS
       File_Address_Read    : STRING    := "Init.dat";
       File_Address_Write   : STRING    := "MemCon.dat";
       Mem_Size_in_Word     : INTEGER   := 256;
-      Read_Delay           : INTEGER   := 10; 
-      Write_Delay          : INTEGER   := 10
+      Read_Delay           : INTEGER   := 0; 
+      Write_Delay          : INTEGER   := 0
    );
    PORT (
       clk:      	      IN    STD_LOGIC;
       reset:            IN    STD_LOGIC := '0';
       
       --Debugging signals
+      pc:               OUT   NATURAL;
+      new_issue:        OUT   STD_LOGIC;
       finished_instr:   OUT   STD_LOGIC;
       finished_prog:    OUT   STD_LOGIC;
       assertion:        OUT   STD_LOGIC;
@@ -121,6 +124,7 @@ ARCHITECTURE rtl OF cpu IS
    SIGNAL cpu_cycle_count     : NATURAL         := 0;
    SIGNAL cpu_branch_count    : NATURAL         := 0;
    SIGNAL cpu_branch_mispred  : NATURAL         := 0;
+   SIGNAL cpu_new_issue       : STD_LOGIC       := '0';
    
 BEGIN
    
@@ -129,6 +133,9 @@ BEGIN
    cycle_count    <= cpu_cycle_count;
    branch_count   <= cpu_branch_count;
    branch_mispred <= cpu_branch_mispred;
+   
+   pc             <= id.pc;
+   new_issue      <= cpu_new_issue;
    
    main_memory : ENTITY work.Main_Memory
       GENERIC MAP (
@@ -285,8 +292,9 @@ BEGIN
    
       IF (clk'event AND clk = '1') THEN
          
+         cpu_new_issue  <= '0';
          IF (id_i.is_stalled = '0') THEN
-            idx   <= DEFAULT_ID;
+            idx            <= DEFAULT_ID;
          END IF;
          
          --Instruction issue
@@ -295,6 +303,7 @@ BEGIN
                id.pc                <= if_i.pc;
                id.pos               <= POS_ID;
                idx.instr            <= if_i.instr_selection;
+               cpu_new_issue        <= '1';
                
                if_i.mem_tx_ongoing  <= '0';
                if_i.instr_buffered  <= '0';
