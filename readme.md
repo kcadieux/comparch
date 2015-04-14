@@ -45,7 +45,8 @@ asrt  $rs $rt	  #Verify that registers $rs and $rt are equal. Assert if not.
 halt			  #Halt the processor (eliminated the need to writing an infinite loop)
 ```
 	
-- LiveCPU tool, allowing interactive assembly instruction execution from the ModelSim command line (also see LiveCPU.pdf). 
+- LiveCPU tool, allowing interactive assembly instruction execution from the ModelSim command line (also see LiveCPU.pdf).
+*Only available in the unpipelined processor. 
 Most popular commands supported by LiveCPU:
 
 ```
