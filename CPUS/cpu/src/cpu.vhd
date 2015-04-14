@@ -26,8 +26,8 @@ ENTITY cpu IS
       File_Address_Read    : STRING    := "Init.dat";
       File_Address_Write   : STRING    := "MemCon.dat";
       Mem_Size_in_Word     : INTEGER   := 256;
-      Read_Delay           : INTEGER   := 10; 
-      Write_Delay          : INTEGER   := 10
+      Read_Delay           : INTEGER   := 0; 
+      Write_Delay          : INTEGER   := 0
    );
    PORT (
       clk:      	      IN    STD_LOGIC;
@@ -291,9 +291,19 @@ BEGIN
    ---------------------------------------------------------------------------------------------------------------------------
    -- FETCH STAGE
    ---------------------------------------------------------------------------------------------------------------------------
-   pipeline_fetch : PROCESS (clk, mm_rd_ready, mm_data, live_instr, live_mode, if_i, id_i, mem_i)
+   pipeline_fetch : PROCESS (clk, mm_rd_ready, mm_data, live_instr, live_mode, if_i, id_i, mem_i, bpb_rd_data, bpb_hit, bpb_valid)
    BEGIN
       finished_instr          <= if_i.mem_is_free;
+      
+      ---Branch prediction buffer read signals
+      bpb_rd_mem              <= '1';
+      bpb_rd_addr             <= std_logic_vector(to_unsigned(if_i.pc, INSTR_WIDTH));
+      
+      if_i.next_pc            <= if_i.pc + 4;
+      IF (bpb_hit = '1' AND bpb_valid = '1') THEN
+         if_i.next_pc         <= to_integer(unsigned(bpb_rd_data));
+      END IF;
+      
    
       --Lock memory if either no request is coming from the MEM stage,
       --or if a current memory transaction is ongoing and we need to finish it.
@@ -319,8 +329,8 @@ BEGIN
    
       if_i.mm_address         <= if_i.pc;
       IF id_i.branch_requested = '1' AND if_i.branch_predicted = '0' THEN if_i.mm_address <= id_i.branch_addr;
-      ELSIF if_i.mem_is_free = '1' AND if_i.mem_tx_ongoing = '1' THEN if_i.mm_address <= if_i.pc + 4;
-      ELSIF if_i.instr_buffered = '1' AND if_i.mem_is_free = '1' AND if_i.can_issue = '1' THEN if_i.mm_address <= if_i.pc + 4;
+      ELSIF if_i.mem_is_free = '1' AND if_i.mem_tx_ongoing = '1' AND if_i.can_issue = '1' THEN if_i.mm_address <= if_i.next_pc;
+      ELSIF if_i.instr_buffered = '1' AND if_i.mem_is_free = '1' AND if_i.can_issue = '1' THEN if_i.mm_address <= if_i.next_pc;
       END IF;
       
       --Select the instruction source
@@ -346,7 +356,7 @@ BEGIN
                
                if_i.mem_tx_ongoing  <= '0';
                if_i.instr_buffered  <= '0';
-               if_i.pc              <= if_i.pc + 4;
+               if_i.pc              <= if_i.next_pc;
             END IF;
 
          ELSIF (if_i.mem_tx_complete = '1') THEN
@@ -399,6 +409,11 @@ BEGIN
       reg_read1_addr <= dec_rs;
       reg_read2_addr <= dec_rt;
       
+      --Branch prediction buffer default write values
+      bpb_wr_addr <= (others => '0');
+      bpb_wr_data <= (others => '0');
+      bpb_wr_mem  <= '0';
+      
       --Deal with all stalls during ID
       id_i.is_stalled <= ex_i.is_stalled;
       IF (DD_STALL(id, ex, mem) OR global_halt = '1') THEN
@@ -415,6 +430,14 @@ BEGIN
          id_i.forward_rs       <= HAS_DD_RS(id, mem);
          id_i.forward_rt       <= HAS_DD_RT(id, mem);
          
+         --Predict taken: always put the branch address into the BPB
+         bpb_wr_addr <= std_logic_vector(to_unsigned(id.pc, INSTR_WIDTH));
+         bpb_wr_data <= dec_branch_addr;
+         IF (IS_JUMP_OP(id)) THEN
+            bpb_wr_data <= dec_jump_addr;
+         END IF;
+         bpb_wr_mem  <= '1';
+         
          IF ((NOT id_i.forward_rs AND NOT id_i.forward_rt AND dec_opcode = OP_BEQ AND reg_read1_data =  reg_read2_data) OR
              (NOT id_i.forward_rs AND NOT id_i.forward_rt AND dec_opcode = OP_BNE AND reg_read1_data /= reg_read2_data) OR
              (    id_i.forward_rs AND NOT id_i.forward_rt AND dec_opcode = OP_BEQ AND mem.result     =  reg_read2_data) OR
@@ -424,6 +447,8 @@ BEGIN
              (    id_i.forward_rs AND     id_i.forward_rt AND dec_opcode = OP_BEQ)) THEN
              
             id_i.branch_addr        <= to_integer(unsigned(dec_branch_addr));
+            
+            
          END IF;
          
          IF    (id.op = OP_J OR id.op = OP_JAL)          THEN id_i.branch_addr <= to_integer(unsigned(dec_jump_addr));
@@ -437,7 +462,7 @@ BEGIN
       IF (clk'event AND clk = '1') THEN
       
          --Update branch count if this is a branch
-         IF (IS_BRANCH_OP(id) AND id_i.is_stalled = '0') THEN
+         IF ((IS_BRANCH_OP(id) OR IS_JUMP_OP(id)) AND id_i.is_stalled = '0') THEN
             cpu_branch_count    <= cpu_branch_count + 1;
          END IF;
       

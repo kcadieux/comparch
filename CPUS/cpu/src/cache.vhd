@@ -47,8 +47,8 @@ ARCHITECTURE rtl OF cache IS
 	
 	SUBTYPE 	HEADER_ENTRY 	IS STD_LOGIC_VECTOR(NB_FLAG_BITS + NB_TAG_BITS - 1 DOWNTO 0);
 	SUBTYPE	DATA_ENTRY		IS STD_LOGIC_VECTOR(data_width - 1 DOWNTO 0);
-	TYPE 		HEADER_MEM		IS ARRAY(nb_entries - 1 DOWNTO 0) OF HEADER_ENTRY;
-	TYPE		DATA_MEM			IS ARRAY(nb_entries - 1 DOWNTO 0) OF DATA_ENTRY;
+	TYPE 		HEADER_MEM		IS ARRAY(0 TO nb_entries - 1) OF HEADER_ENTRY;
+	TYPE		DATA_MEM			IS ARRAY(0 TO nb_entries - 1) OF DATA_ENTRY;
 	
 	SIGNAL sram_headers: 	HEADER_MEM;		--Memory that holds the headers (flags + tag)
 	SIGNAL sram_data:			DATA_MEM;		--Memory that holds the actual data (every individual element of a block is addressable)
@@ -62,6 +62,9 @@ ARCHITECTURE rtl OF cache IS
 	SIGNAL valid_flag:		STD_LOGIC := '0';
    
    SIGNAL write_ptr:       NATURAL   := 0;
+   
+   SIGNAL write_present:   STD_LOGIC := '0';
+   SIGNAL write_index:     NATURAL := 0;
 BEGIN
 	
    hit      <= hit_flag;
@@ -70,32 +73,54 @@ BEGIN
    read_write: PROCESS(clk, read_mem, write_mem, sram_data, sram_headers, read_address, write_address, write_ptr)
    BEGIN
    
+      --Initialize memory during simulation. Flags are set to zero to make sure memory starts as invalid.
+      IF(now < 1 ps)THEN
+         FOR i IN 0 TO nb_entries-1 LOOP
+            sram_headers(i) <= (others => '0');
+            sram_data(i) <= (others => '0');
+         END LOOP;
+      END IF;
+   
+      write_present <= '0';
+      write_index   <= 0;
+      FOR i IN 0 TO nb_entries-1 LOOP
+         IF (write_address = sram_headers(i)(NB_TAG_BITS-1 DOWNTO 0)) THEN
+            write_present  <= '1';
+            write_index    <= i;
+         END IF;
+      END LOOP;
+      
+      read_data   <= (others => '0');
+      hit_flag    <= '0';
+      valid_flag  <= '0';
+      
+      IF (read_mem = '1') THEN
+         
+         FOR i IN 0 TO nb_entries-1 LOOP
+            IF (read_address = sram_headers(i)(NB_TAG_BITS-1 DOWNTO 0)) THEN
+               read_data   <= sram_data(i);
+               hit_flag    <= '1';
+               valid_flag  <= sram_headers(i)(VALID_INDEX);
+            END IF;
+         END LOOP;
+         
+      END IF;
+
       IF (clk'event AND clk = '1') THEN
          
-         read_data   <= (others => '0');
-         hit_flag    <= '0';
-         valid_flag  <= '0';
-         
-         IF (read_mem = '1') THEN
-            
-            FOR i IN 0 TO nb_entries-1 LOOP
-               IF (read_address = sram_headers(i)(NB_TAG_BITS-1 DOWNTO 0)) THEN
-                  read_data   <= sram_data(i);
-                  hit_flag    <= '1';
-                  valid_flag  <= sram_headers(i)(VALID_INDEX);
-               END IF;
-            END LOOP;
-            
-         END IF;
-         
-         
          IF (write_mem = '1') THEN
-            sram_headers(write_ptr) <= WRITE_FLAGS & write_address;
-            sram_data(write_ptr) <= write_data;
-            
-            write_ptr <= write_ptr + 1;
-            IF (write_ptr = nb_entries - 1) THEN
-               write_ptr <= 0;
+         
+            IF (write_present = '1') THEN
+               sram_headers(write_index) <= WRITE_FLAGS & write_address;
+               sram_data(write_index) <= write_data;
+            ELSE
+               sram_headers(write_ptr) <= WRITE_FLAGS & write_address;
+               sram_data(write_ptr) <= write_data;
+               
+               write_ptr <= write_ptr + 1;
+               IF (write_ptr = nb_entries - 1) THEN
+                  write_ptr <= 0;
+               END IF;
             END IF;
          END IF;
       

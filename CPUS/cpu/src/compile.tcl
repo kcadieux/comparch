@@ -12,5 +12,6 @@ vcom Main_Memory.vhd
 vcom register_file.vhd
 vcom instr_decoder.vhd
 vcom cpu_lib.vhd
+vcom cache.vhd
 vcom cpu.vhd
 vcom cpu_tb.vhd

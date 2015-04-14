@@ -95,6 +95,7 @@ proc AddWaves {} {
 								sim:/$TARGET_CPU/if_i.instr_buffered\
 								-radix binary sim:/$TARGET_CPU/if_i.instr\
 								-radix binary sim:/$TARGET_CPU/if_i.instr_selection\
+								-radix unsigned sim:/$TARGET_CPU/if_i.next_pc\
 								sim:/$TARGET_CPU/if_i.can_issue\
 								sim:/$TARGET_CPU/if_i.mem_is_free\
 	                            sim:/$TARGET_CPU/if_i.mem_tx_ongoing\

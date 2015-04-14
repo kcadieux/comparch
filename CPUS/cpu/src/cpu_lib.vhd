@@ -94,6 +94,7 @@ PACKAGE cpu_lib IS
       instr_buffered       : STD_LOGIC;
       instr                : STD_LOGIC_VECTOR(INSTR_WIDTH-1 DOWNTO 0);
       instr_selection      : STD_LOGIC_VECTOR(INSTR_WIDTH-1 DOWNTO 0);
+      next_pc              : NATURAL;
       mem_is_free          : STD_LOGIC;
       can_issue            : STD_LOGIC;
       mem_tx_ongoing       : STD_LOGIC;
@@ -110,6 +111,7 @@ PACKAGE cpu_lib IS
       instr_buffered       => '0',
       instr                => (others => '0'),
       instr_selection      => (others => '0'),
+      next_pc              => 0,
       mem_is_free          => '0',
       can_issue            => '0',
       mem_tx_ongoing       => '1',
