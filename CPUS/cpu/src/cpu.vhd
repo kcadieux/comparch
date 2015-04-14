@@ -26,8 +26,8 @@ ENTITY cpu IS
       File_Address_Read    : STRING    := "Init.dat";
       File_Address_Write   : STRING    := "MemCon.dat";
       Mem_Size_in_Word     : INTEGER   := 256;
-      Read_Delay           : INTEGER   := 10; 
-      Write_Delay          : INTEGER   := 10
+      Read_Delay           : INTEGER   := 0; 
+      Write_Delay          : INTEGER   := 0
    );
    PORT (
       clk:      	      IN    STD_LOGIC;
@@ -398,7 +398,7 @@ BEGIN
       IF (clk'event AND clk = '1') THEN
       
          --Update branch count if this is a branch
-         IF (IS_BRANCH_OP(id) AND id_i.is_stalled = '0') THEN
+         IF ((IS_BRANCH_OP(id) OR IS_JUMP_OP(id) AND id_i.is_stalled = '0') THEN
             cpu_branch_count    <= cpu_branch_count + 1;
          END IF;
       
