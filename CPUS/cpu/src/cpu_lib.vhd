@@ -130,6 +130,7 @@ PACKAGE cpu_lib IS
       forward_rs           : BOOLEAN;
       forward_rt           : BOOLEAN;
       next_pc              : NATURAL;
+      history              : UNSIGNED(NB_HISTORY_BITS-1 DOWNTO 0);
    END RECORD;
    
    CONSTANT DEFAULT_ID_INTERNAL : ID_INTERNAL := (
@@ -139,7 +140,8 @@ PACKAGE cpu_lib IS
       branch_addr          => 0,
       forward_rs           => false,
       forward_rt           => false,
-      next_pc              => 4
+      next_pc              => 4,
+      history              => (others => '1')
    );
    
    TYPE EX_INTERNAL IS RECORD

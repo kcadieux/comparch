@@ -421,6 +421,7 @@ BEGIN
       bpb_wr_data <= (others => '0');
       bpb_wr_mem  <= '0';
       bpb_wr_taken<= '0';
+      bpb_history <= std_logic_vector(id_i.history);
       
       --Deal with all stalls during ID
       id_i.is_stalled <= ex_i.is_stalled;
@@ -473,6 +474,12 @@ BEGIN
          --Update branch count if this is a branch
          IF ((IS_BRANCH_OP(id) OR IS_JUMP_OP(id)) AND id_i.is_stalled = '0') THEN
             cpu_branch_count    <= cpu_branch_count + 1;
+            
+            IF (bpb_wr_taken = '1') THEN
+               id_i.history <= (id_i.history SLL 1) + 1;
+            ELSE
+               id_i.history <= (id_i.history SLL 1);
+            END IF;
          END IF;
       
          IF (ex_i.is_stalled = '0' AND id_i.is_stalled = '1') THEN
