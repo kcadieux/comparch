@@ -213,6 +213,7 @@ namespace MIKA
                 if (Branches != 0)
                 {
                     Accuracy = (((float)Branches - (float)Convert.ToInt32(stats[6])) / (float)Branches * 100.0f).ToString("####0.00");
+                    Accuracy += "%";
                 }
             }
 

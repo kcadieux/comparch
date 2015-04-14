@@ -90,7 +90,7 @@
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <TextBlock Text="{Binding Path=Cycles, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}" 
-                                       TextWrapping="Wrap"/>
+                                       TextWrapping="Wrap" FontWeight="ExtraBold" VerticalAlignment="Center" HorizontalAlignment="Center" FontSize="20"/>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
@@ -98,7 +98,7 @@
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <TextBlock Text="{Binding Path=Branches, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}" 
-                                       TextWrapping="Wrap"/>
+                                       TextWrapping="Wrap" FontWeight="ExtraBold" VerticalAlignment="Center" HorizontalAlignment="Center" FontSize="20"/>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
@@ -106,15 +106,15 @@
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <TextBlock Text="{Binding Path=MispredictedBranches, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}" 
-                                       TextWrapping="Wrap"/>
+                                       TextWrapping="Wrap" FontWeight="ExtraBold" VerticalAlignment="Center" HorizontalAlignment="Center" FontSize="20"/>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
-                <DataGridTemplateColumn Header="Accuracy (%)" IsReadOnly="True">
+                <DataGridTemplateColumn Header="Accuracy" IsReadOnly="True">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <TextBlock Text="{Binding Path=Accuracy, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}" 
-                                       TextWrapping="Wrap"/>
+                                       TextWrapping="Wrap" FontWeight="ExtraBold" VerticalAlignment="Center" HorizontalAlignment="Center" FontSize="20"/>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
