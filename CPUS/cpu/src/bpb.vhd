@@ -1,4 +1,4 @@
--- This file implements a direct mapped cache
+-- This file implements a branch prediction buffer
 --
 -- entity name: cache
 --
