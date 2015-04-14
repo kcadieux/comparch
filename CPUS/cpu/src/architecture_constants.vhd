@@ -19,5 +19,7 @@ PACKAGE architecture_constants IS
    
    CONSTANT    IMMEDIATE_WIDTH   : INTEGER := 16;
    
+   CONSTANT    NB_HISTORY_BITS   : INTEGER := 1;
+   
    CONSTANT    ZERO_REG          : STD_LOGIC_VECTOR(REG_ADDR_WIDTH-1 DOWNTO 0) := (others => '0');
 END architecture_constants;

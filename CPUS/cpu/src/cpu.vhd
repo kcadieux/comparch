@@ -106,10 +106,13 @@ ARCHITECTURE rtl OF cpu IS
    SIGNAL bpb_wr_addr      : STD_LOGIC_VECTOR(INSTR_WIDTH-1 DOWNTO 0)      := (others => '0');
    SIGNAL bpb_rd_mem       : STD_LOGIC                                     := '0';
    SIGNAL bpb_wr_mem       : STD_LOGIC                                     := '0';
+   SIGNAL bpb_wr_taken     : STD_LOGIC                                     := '0';
    SIGNAL bpb_rd_data      : STD_LOGIC_VECTOR(INSTR_WIDTH-1 DOWNTO 0)      := (others => '0');
    SIGNAL bpb_wr_data      : STD_LOGIC_VECTOR(INSTR_WIDTH-1 DOWNTO 0)      := (others => '0');
+   SIGNAL bpb_history      : STD_LOGIC_VECTOR(NB_HISTORY_BITS - 1 DOWNTO 0):= (others => '0');
    SIGNAL bpb_hit          : STD_LOGIC                                     := '0';
    SIGNAL bpb_valid        : STD_LOGIC                                     := '0';
+   SIGNAL bpb_taken        : STD_LOGIC                                     := '0';
    
    --Pipeline registers
    SIGNAL id               : PIPE_REG        := DEFAULT_PIPE_REG;
@@ -220,20 +223,24 @@ BEGIN
       GENERIC MAP (
          data_width     => INSTR_WIDTH,
          address_width  => INSTR_WIDTH,
-         nb_entries     => 256
+         nb_entries     => 256,
+         nb_history_bits=> NB_HISTORY_BITS
       )
       PORT MAP (
          clk            => clk,
          read_address   => bpb_rd_addr,
          write_address  => bpb_wr_addr,
+         history        => bpb_history,
       
          write_data  	=>	bpb_wr_data,
+         write_taken    => bpb_wr_taken,
          read_mem       => bpb_rd_mem,
          write_mem      => bpb_wr_mem,
 	
          read_data      => bpb_rd_data,
          hit            => bpb_hit,
-         valid          => bpb_valid
+         valid          => bpb_valid,
+         taken          => bpb_taken
       );
       
    
