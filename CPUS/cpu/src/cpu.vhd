@@ -26,8 +26,8 @@ ENTITY cpu IS
       File_Address_Read    : STRING    := "Init.dat";
       File_Address_Write   : STRING    := "MemCon.dat";
       Mem_Size_in_Word     : INTEGER   := 256;
-      Read_Delay           : INTEGER   := 0; 
-      Write_Delay          : INTEGER   := 0
+      Read_Delay           : INTEGER   := 10; 
+      Write_Delay          : INTEGER   := 10
    );
    PORT (
       clk:      	      IN    STD_LOGIC;
@@ -298,7 +298,7 @@ BEGIN
    ---------------------------------------------------------------------------------------------------------------------------
    -- FETCH STAGE
    ---------------------------------------------------------------------------------------------------------------------------
-   pipeline_fetch : PROCESS (clk, mm_rd_ready, mm_data, live_instr, live_mode, if_i, id_i, mem_i, bpb_rd_data, bpb_hit, bpb_valid)
+   pipeline_fetch : PROCESS (clk, mm_rd_ready, mm_data, live_instr, live_mode, if_i, id_i, mem_i, bpb_rd_data, bpb_hit, bpb_valid, bpb_taken)
    BEGIN
       finished_instr          <= if_i.mem_is_free;
       
@@ -307,7 +307,7 @@ BEGIN
       bpb_rd_addr             <= std_logic_vector(to_unsigned(if_i.pc, INSTR_WIDTH));
       
       if_i.next_pc            <= if_i.pc + 4;
-      IF (bpb_hit = '1' AND bpb_valid = '1') THEN
+      IF (bpb_hit = '1' AND bpb_valid = '1' AND bpb_taken = '1') THEN
          if_i.next_pc         <= to_integer(unsigned(bpb_rd_data));
       END IF;
       
@@ -420,6 +420,7 @@ BEGIN
       bpb_wr_addr <= (others => '0');
       bpb_wr_data <= (others => '0');
       bpb_wr_mem  <= '0';
+      bpb_wr_taken<= '0';
       
       --Deal with all stalls during ID
       id_i.is_stalled <= ex_i.is_stalled;
@@ -442,6 +443,7 @@ BEGIN
          bpb_wr_data <= dec_branch_addr;
          IF (IS_JUMP_OP(id)) THEN
             bpb_wr_data <= dec_jump_addr;
+            bpb_wr_taken<= '1';
          END IF;
          bpb_wr_mem  <= '1';
          
@@ -454,7 +456,7 @@ BEGIN
              (    id_i.forward_rs AND     id_i.forward_rt AND dec_opcode = OP_BEQ)) THEN
              
             id_i.branch_addr        <= to_integer(unsigned(dec_branch_addr));
-            
+            bpb_wr_taken            <= '1';
             
          END IF;
          
