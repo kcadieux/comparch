@@ -1,9 +1,6 @@
 
 Tested with: ModelSim ALTERA STARTER EDITION 10.1d
 
-Preliminary step:
-1. Place cpu_tb.vhd and compile.tcl inside the CPUS/cpu/src folder
-
 How to test a program:
 1. Place your assembled program (.dat file) in CPUS/cpu/src folder
 2. Open ModelSim
